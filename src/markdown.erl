@@ -773,7 +773,7 @@ type_ws2([{{ws, comp}, W} | T]) -> case gt(W, 4) of
 type_ws2([{{ws, sp}, _} | _T])  -> normal.
 
 gt(String, Len) ->
-    ExpString = re:replace(String, "\t", "    ", [{return, list}]),
+    ExpString = re:replace(String, "\t", "    ", [{return, list}, unicode]),
     ExpStringLen = length(ExpString),
     if
         ExpStringLen >= Len -> WS = string:substr(ExpString, Len + 1,
@@ -1004,7 +1004,7 @@ closingdiv([$>| T], Acc) -> Acc2 = flatten(reverse(Acc)),
 closingdiv([H|T], Acc)   -> closingdiv(T, [H | Acc]).
 
 get_url(String) -> HTTP_regex = "^(H|h)(T|t)(T|t)(P|p)(S|s)*://",
-                   case re:run(String, HTTP_regex) of
+                   case re:run(String, HTTP_regex, [unicode]) of
                        nomatch    -> not_url;
                        {match, _} -> get_url1(String, [])
                    end.
@@ -1019,7 +1019,7 @@ get_url1([H | T], Acc)       -> get_url1(T, [H | Acc]).
 
 get_email_addie(String) ->
     Snip_regex = ">",
-    case re:run(String, Snip_regex) of
+    case re:run(String, Snip_regex, [unicode]) of
         nomatch                -> not_email;
         {match, [{N, _} | _T]} ->
             {Possible, [$> | T]} = lists:split(N, String),
@@ -1028,7 +1028,7 @@ get_email_addie(String) ->
                 ++ "@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+"
                 ++ "(?:[a-zA-Z]{2}|com|org|net|gov|mil"
                 ++ "|biz|info|mobi|name|aero|jobs|museum)",
-            case re:run(Possible, EMail_regex) of
+            case re:run(Possible, EMail_regex, [unicode]) of
                 nomatch    -> not_email;
                 {match, _} -> {{email, Possible}, T}
             end
