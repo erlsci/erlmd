@@ -507,7 +507,7 @@ t_l1([[{{ws, _}, _}, {{md, dash}, _},
     t_l1(T, A1, [{{ul, make_list_str([W | T1])}, H} | A2]);
 
 %% types ordered lists...
-t_l1([[{{ws, _}, _}, {num, _} = N1| T1] | T], A1, A2) ->
+t_l1([[{{ws, WS}, _}, {num, _} = N1| T1] | T], A1, A2) when WS /= comp ->
     t_l1(T, A1, [type_ol([N1 | T1]) | A2]);
 t_l1([[{num, _} | _T] = H | T], A1, A2) ->
     t_l1(T, A1, [type_ol(H) | A2]);
