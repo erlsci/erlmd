@@ -119,7 +119,7 @@ p1([{blocktag, [{{{tag, open}, Type}, Tg}] = _Tag} | T], R, I, Acc) ->
 %% blank lines/linefeeds are gobbled down
 p1([{Type, _} | T], R, I, Acc)
   when Type == blank orelse Type == linefeed ->
-    Rest = grab_empties(T),
+    {Rest, _} = grab_empties(T),
     p1(Rest, R, I, [pad(I) ++ "\n" | Acc]);
 
 %% two consecutive normal lines should be concatenated...
@@ -218,10 +218,15 @@ p1([{{ol, _P}, _} | _T] = List, R, I, Acc) ->
 %% and other codeblocks
 p1([{{codeblock, P1}, S1}, {{codeblock, P2}, S2} | T], R, I, Acc) ->
     p1([{{codeblock, merge(P1, pad(I), P2)}, S1 ++ S2} | T], R, I, Acc);
-p1([{{codeblock, P}, _} | T], R, I, Acc) ->
-    Rest = grab_empties(T),
-    p1(Rest, R, I,  ["<pre><code>" ++ make_str(snip(P), R)
-                     ++ "\n</code></pre>\n\n" | Acc]);
+p1([{{codeblock, P1}, S1} | T1], R, I, Acc) ->
+    case grab_empties(T1) of
+        {[{{codeblock, P2}, S2} | T2], E} ->
+            p1([{{codeblock, merge(P1, pad(I), E ++ P2)}, S1 ++ E ++ S2} | T2],
+               R, I, Acc);
+        {Rest, _} ->
+            p1(Rest, R, I, ["<pre><code>" ++ make_str(snip(P1), R)
+                            ++ "\n</code></pre>\n\n" | Acc])
+    end;
 
 %% horizontal rules
 p1([{hr, _} | T], R, I, Acc) ->
@@ -255,9 +260,11 @@ grab_for_blockhtml([H | T], Type, Acc) ->
     Str = make_plain_str(Content),
     grab_for_blockhtml(T, Type, [Str | Acc]).
 
-grab_empties([{linefeed, _} | T]) -> grab_empties(T);
-grab_empties([{blank, _} | T])    -> grab_empties(T);
-grab_empties(List)                -> List.
+grab_empties(List) -> grab_empties1(List, []).
+
+grab_empties1([{linefeed, _} | T], E) -> grab_empties1(T, [{{lf,lf}, "\n"} | E]);
+grab_empties1([{blank, _} | T], E)    -> grab_empties1(T, [{{lf,lf}, "\n"} | E]);
+grab_empties1(List, E)                -> {List, E}.
 
 merge(P1, Pad, P2) ->
     NewP1 = make_br(P1),
