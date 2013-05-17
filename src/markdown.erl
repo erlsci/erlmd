@@ -224,7 +224,7 @@ p1([{{codeblock, P1}, S1} | T1], R, I, Acc) ->
             p1([{{codeblock, merge(P1, pad(I), E ++ P2)}, S1 ++ E ++ S2} | T2],
                R, I, Acc);
         {Rest, _} ->
-            p1(Rest, R, I, ["<pre><code>" ++ make_str(snip(P1), R)
+            p1(Rest, R, I, ["<pre><code>" ++ htmlencode(make_plain_str(snip(P1)))
                             ++ "\n</code></pre>\n\n" | Acc])
     end;
 
