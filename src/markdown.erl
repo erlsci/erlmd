@@ -457,8 +457,8 @@ t_l1([[{{ws, sp}, _},
        {{inline, open}, _} | T1] = H | T2], A1, A2) ->
     t_inline(H, T1, T2, A1, A2);
 t_l1([[{{ws, tab}, _},
-       {{inline, open}, _} | T1] = H | T2], A1, A2) ->
-    t_inline(H, T1, T2, A1, A2);
+       {{inline, open}, _} | _] = H | T2], A1, A2) ->
+    t_l1(T2, A1, [type_ws(H) | A2]);
 t_l1([[{{ws, comp}, W},
        {{inline, open}, _} | T1] = H | T2], A1, A2) ->
     case gt(W, 4) of
