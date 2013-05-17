@@ -454,11 +454,10 @@ t_l1([[{{ws, tab}, _},
     t_inline(H, T1, T2, A1, A2);
 t_l1([[{{ws, comp}, W},
        {{inline, open}, _} | T1] = H | T2], A1, A2) ->
-    case gt(W, 3) of
-        {true, _R} -> t_inline(H, T1, T2, A1, A2);
-        false      -> t_l1(T1, A1, [{normal , H} | A2]) % same exit at the final clause!
-    end,
-    t_inline(H, T1, T2, A1, A2);
+    case gt(W, 4) of
+        {true, _R} -> t_l1(T2, A1, [type_ws(H) | A2]);
+        false      -> t_inline(H, T1, T2, A1, A2)
+    end;
 t_l1([[{{inline, open}, _} | T1] = H | T2], A1, A2) ->
     t_inline(H, T1, T2, A1, A2);
 
