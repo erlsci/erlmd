@@ -1124,7 +1124,7 @@ get_inline([{{inline, close}, _}, {{ws, sp}, _}, {bra, _} | T], _R, A, img) ->
 get_inline([{{inline, close}, _}, {{inline, open}, _} | T], R, A, _) ->
     Text = make_plain_str(reverse(A)),
     case get_id_diff(T) of
-        normal            -> {[], make_plain_str(reverse(A))};
+        normal            -> {[], Text};
         {[{_, Id}], Rest} ->
             {Url, Title} = case lists:keyfind(Id, 1, R) of
                                false          -> {"", ""};
@@ -1132,7 +1132,7 @@ get_inline([{{inline, close}, _}, {{inline, open}, _} | T], R, A, _) ->
                            end,
             Tag = {Url, Title, Text},
             {Rest, Tag};
-        _Other -> {[], make_plain_str(reverse(A))} % random failing id's
+        _Other -> {[], Text} % random failing id's
     end;
 %% so does this one - just delete the space and rethrow it
 get_inline([{{inline, close}, _} = C , {{ws, _}, _},
