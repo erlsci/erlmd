@@ -1,4 +1,5 @@
 {application, erlmd,
  [{description, "An implementation of markdown written in Erlang (fork of erlmarkdown)"},
   {vsn, "1.2.0"},
-  {applications, [kernel, stdlib]}]}.
+  {applications, [kernel, stdlib]},
+  {license, "BSD 2-Clause"}]}.
