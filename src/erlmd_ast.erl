@@ -50,7 +50,36 @@ build(TypedLines, Refs) ->
 %% @doc Build inline elements from tokens
 -spec build_inline([term()], refs()) -> [inline()].
 build_inline(Tokens, Refs) ->
-    parse_inline_elements(Tokens, Refs, []).
+    % Mark hard breaks in the token stream before parsing
+    ProcessedTokens = mark_hard_breaks(Tokens),
+    parse_inline_elements(ProcessedTokens, Refs, []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Hard Line Break Detection
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% @doc Mark hard line breaks in token stream
+%% Detects patterns: two spaces before LF, or tab before LF
+mark_hard_breaks(Tokens) ->
+    mark_hard_breaks(Tokens, []).
+
+mark_hard_breaks([], Acc) ->
+    lists:reverse(Acc);
+%% Two spaces before LF - mark as hard break (check for comp type)
+mark_hard_breaks([{{ws, comp}, _}, {{lf, _}, _LF} | T], Acc) ->
+    % Replace with a hard break marker token
+    mark_hard_breaks(T, [{{hard_break, true}, " <br />\n"} | Acc]);
+%% Two spaces before LF - mark as hard break (check for sp type)
+mark_hard_breaks([{{ws, sp}, "  "}, {{lf, _}, _LF} | T], Acc) ->
+    mark_hard_breaks(T, [{{hard_break, true}, " <br />\n"} | Acc]);
+%% Tab before LF - mark as hard break
+mark_hard_breaks([{{ws, tab}, _}, {{lf, _}, _LF} | T], Acc) ->
+    mark_hard_breaks(T, [{{hard_break, true}, " <br />\n"} | Acc]);
+%% Keep other tokens as-is
+mark_hard_breaks([H | T], Acc) ->
+    mark_hard_breaks(T, [H | Acc]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
@@ -208,6 +237,28 @@ parse_blocks([{{h6, P}, _} | T], Refs, Acc) ->
     Header = #header{level = 6, content = Content, type = atx},
     parse_blocks(T, Refs, [Header | Acc]);
 
+%% List consumption - MUST come before general list parsing
+%% Unordered lists swallow normal lines
+parse_blocks([{{ul, P1}, S1}, {normal, P2} | T], Refs, Acc) ->
+    % Merge the normal line into the list item
+    Merged = merge_tokens(P1, P2),
+    parse_blocks([{{ul, Merged}, S1} | T], Refs, Acc);
+
+%% Unordered lists swallow codeblock lines
+parse_blocks([{{ul, P1}, S1}, {{codeblock, P2}, S2} | T], Refs, Acc) ->
+    Merged = merge_tokens(P1, P2),
+    parse_blocks([{{ul, Merged}, S1 ++ S2} | T], Refs, Acc);
+
+%% Ordered lists swallow normal lines
+parse_blocks([{{ol, P1}, S1}, {normal, P2} | T], Refs, Acc) ->
+    Merged = merge_tokens(P1, P2),
+    parse_blocks([{{ol, Merged}, S1} | T], Refs, Acc);
+
+%% Ordered lists swallow codeblock lines
+parse_blocks([{{ol, P1}, S1}, {{codeblock, P2}, S2} | T], Refs, Acc) ->
+    Merged = merge_tokens(P1, P2),
+    parse_blocks([{{ol, Merged}, S1 ++ S2} | T], Refs, Acc);
+
 %% Unordered lists
 parse_blocks([{{ul, _P}, _} | _T] = List, Refs, Acc) ->
     {Rest, ListNode} = parse_list(ul, List, Refs),
@@ -334,6 +385,11 @@ grab_list_item(List, _Refs, Acc, Wrap) ->
 parse_inline_elements([], _Refs, Acc) ->
     lists:reverse(Acc);
 
+%% Hard line breaks (marked by mark_hard_breaks/1)
+parse_inline_elements([{{hard_break, true}, _} | T], Refs, Acc) ->
+    LB = #line_break{type = hard},
+    parse_inline_elements(T, Refs, [LB | Acc]);
+
 %% Images: ![alt](url "title")
 parse_inline_elements([{{punc, bang}, _}, {{inline, open}, _} | T], Refs, Acc) ->
     case get_inline_content(T, Refs, img) of
@@ -422,9 +478,15 @@ parse_inline(Tokens, Refs) ->
 %% @doc Collect text tokens until we hit a special marker
 collect_text_tokens([]) ->
     {[], ""};
-collect_text_tokens([{string, S} | T]) ->
+collect_text_tokens([{string, S} | T]) when is_list(S) ->
     {Rest, More} = collect_text_tokens(T),
     {Rest, S ++ More};
+collect_text_tokens([{string, _} | T]) ->
+    % Skip {string, none} or other non-list string tokens
+    collect_text_tokens(T);
+% Stop at hard breaks
+collect_text_tokens([{{hard_break, _}, _} | _] = List) ->
+    {List, ""};
 % Stop at inline markup (links, images)
 collect_text_tokens([{{inline, _}, _} | _] = List) ->
     {List, ""};
@@ -452,11 +514,14 @@ collect_text_tokens([{{{tag, _}, _}, Content} | T]) ->
 collect_text_tokens([{{ws, none}, none} | T]) ->
     % This is non-space-filling whitespace - skip it
     collect_text_tokens(T);
+% Skip tokens with atom content (like 'none')
+collect_text_tokens([{_, Content} | T]) when is_atom(Content) ->
+    collect_text_tokens(T);
 % Handle other token types as text - but check if content is a list
 collect_text_tokens([{_, S} | T]) when is_list(S) ->
     {Rest, More} = collect_text_tokens(T),
     {Rest, S ++ More};
-% Skip tokens with non-list content (atoms, numbers, etc)
+% Skip tokens with other non-list content (numbers, etc)
 collect_text_tokens([{_, _} | T]) ->
     collect_text_tokens(T).
 
@@ -608,7 +673,7 @@ parse_emphasis_and_code([$` | T], Acc) ->
             parse_emphasis_and_code(T, [TextNode | Acc])
     end;
 
-%% Line breaks
+%% Line breaks (hard breaks already handled at token level)
 parse_emphasis_and_code([?CR, ?LF | T], Acc) ->
     LB = #line_break{type = soft},
     parse_emphasis_and_code(T, [LB | Acc]);
@@ -643,6 +708,7 @@ parse_emphasis_and_code([?NBSP | T], Acc) ->
     TextNode = #text{content = [194, 160]},  % UTF-8 for nbsp
     parse_emphasis_and_code(T, [TextNode | Acc]);
 
+%% Tab - expand to 4 spaces (hard breaks with tab already handled above)
 parse_emphasis_and_code([?TAB | T], Acc) ->
     TextNode = #text{content = "    "},
     parse_emphasis_and_code(T, [TextNode | Acc]);
@@ -720,6 +786,15 @@ parse_inline_link_or_image(Tokens, Refs, Type) ->
             case Rest1 of
                 [{bra, _} | Rest2] ->
                     % Direct link/image: [text](url)
+                    case get_url_and_title(Rest2, []) of
+                        {Rest3, Url, Title} ->
+                            {Rest3, {Url, Title, Text}};
+                        normal ->
+                            normal
+                    end;
+                % Allow space before parenthesis for images: ![alt] (url)
+                [{{ws, _}, _}, {bra, _} | Rest2] when Type =:= img ->
+                    % Direct image with space: ![text] (url)
                     case get_url_and_title(Rest2, []) of
                         {Rest3, Url, Title} ->
                             {Rest3, {Url, Title, Text}};
