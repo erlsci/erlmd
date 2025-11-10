@@ -15,8 +15,6 @@
 
 -import(lists, [flatten/1, reverse/1]).
 
--include_lib("eunit/include/eunit.hrl").
-
 -define(SPACE, 32).
 -define(TAB,    9).
 -define(LF,    10).
@@ -1281,11 +1279,3 @@ make_img_tag(Url, Acc, Title) ->
       ++ " alt=\"" ++ Acc ++ "\""
       ++ " title=\"" ++ Title ++ "\""
       ++ " />"}.
-
-%%%-------------------------------------------------------------------
-%%%
-%%% Unit Tests
-%%%
-%%%-------------------------------------------------------------------
-
--include("markdown_tests.hrl").
