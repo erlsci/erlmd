@@ -366,6 +366,12 @@ parse_inline_elements([{{inline, open}, _} | T], Refs, Acc) ->
             parse_inline_elements(Rest, Refs, [TextNode | Acc])
     end;
 
+%% Unmatched close bracket - treat as literal text
+%% This handles cases like: \[id] where the open bracket was escaped
+parse_inline_elements([{{inline, close}, _} | T], Refs, Acc) ->
+    TextNode = #text{content = "]"},
+    parse_inline_elements(T, Refs, [TextNode | Acc]);
+
 %% Email addresses
 parse_inline_elements([{email, Addie} | T], Refs, Acc) ->
     Link = #link{
@@ -425,23 +431,34 @@ collect_text_tokens([{{inline, _}, _} | _] = List) ->
 % Stop at images (bang followed by inline open)
 collect_text_tokens([{{punc, bang}, _}, {{inline, open}, _} | _] = List) ->
     {List, ""};
+% Stop at escaped inline markers (backslash before bracket/bang)
+collect_text_tokens([{{punc, bslash}, _}, {{inline, _}, _} | _] = List) ->
+    {List, ""};
+collect_text_tokens([{{punc, bslash}, _}, {{punc, bang}, _} | _] = List) ->
+    {List, ""};
 % Stop at URLs and email addresses
 collect_text_tokens([{url, _} | _] = List) ->
     {List, ""};
 collect_text_tokens([{email, _} | _] = List) ->
     {List, ""};
-% Stop at HTML tags (but {{{tag, ...}}, ...} should be included as text for backticks)
+% Stop at HTML tags
 collect_text_tokens([{tags, _} | _] = List) ->
     {List, ""};
+% Handle tag tokens with content - include content for backtick processing
 collect_text_tokens([{{{tag, _}, _}, Content} | T]) ->
-    % Tag tokens with content (like <div>) - include content for backtick processing
     {Rest, More} = collect_text_tokens(T),
     {Rest, Content ++ More};
+% CRITICAL FIX: Handle special whitespace token {{ws, none}, none}
+collect_text_tokens([{{ws, none}, none} | T]) ->
+    % This is non-space-filling whitespace - skip it
+    collect_text_tokens(T);
+% Handle other token types as text - but check if content is a list
 collect_text_tokens([{_, S} | T]) when is_list(S) ->
     {Rest, More} = collect_text_tokens(T),
     {Rest, S ++ More};
-collect_text_tokens(List) ->
-    {List, ""}.
+% Skip tokens with non-list content (atoms, numbers, etc)
+collect_text_tokens([{_, _} | T]) ->
+    collect_text_tokens(T).
 
 %% @doc Parse text for inline formatting (emphasis, strong, code, etc.)
 parse_text_formatting(Text, _Refs) ->
@@ -551,10 +568,25 @@ parse_emphasis_and_code([$\\, $` | T], Acc) ->
     TextNode = #text{content = "`"},
     parse_emphasis_and_code(T, [TextNode | Acc]);
 
-%% General backslash escape - consume backslash and include next character
-parse_emphasis_and_code([$\\, C | T], Acc) ->
-    TextNode = #text{content = [C]},
-    parse_emphasis_and_code(T, [TextNode | Acc]);
+%% General backslash escape for markdown special characters only
+parse_emphasis_and_code([$\\ | T], Acc) ->
+    case T of
+        [C | Rest] when C =:= $*; C =:= $_; C =:= $`; C =:= $\\;
+                        C =:= $[; C =:= $]; C =:= $(; C =:= $);
+                        C =:= $!; C =:= $#; C =:= $+; C =:= $-;
+                        C =:= $.; C =:= $> ->
+            % Markdown special character - consume backslash, output character
+            TextNode = #text{content = [C]},
+            parse_emphasis_and_code(Rest, [TextNode | Acc]);
+        [_C | _Rest] ->
+            % NOT a markdown special - keep the backslash
+            TextNode = #text{content = "\\"},
+            parse_emphasis_and_code(T, [TextNode | Acc]);
+        [] ->
+            % Trailing backslash
+            TextNode = #text{content = "\\"},
+            parse_emphasis_and_code([], [TextNode | Acc])
+    end;
 
 parse_emphasis_and_code([$`, $` | T], Acc) ->
     case collect_until(T, [$`, $`]) of
@@ -664,7 +696,10 @@ collect_regular_text([], Acc) ->
 collect_regular_text([H | T], Acc) when H =:= $*; H =:= $_; H =:= $`;
                                          H =:= $\\; H =:= ?LF; H =:= ?CR;
                                          H =:= $&; H =:= $< ->
-    {[H | T], lists:reverse(Acc)};
+    case Acc of
+        [] -> {[H | T], ""};  % No regular text collected, return empty string
+        _ -> {[H | T], lists:reverse(Acc)}
+    end;
 collect_regular_text([H | T], Acc) ->
     collect_regular_text(T, [H | Acc]).
 
@@ -788,15 +823,28 @@ parse_url_title(Tokens) ->
 
 %% @doc Split URL from title (title is in quotes)
 split_url_title([], Acc) ->
-    {lists:reverse(Acc), []};
+    % Strip trailing whitespace from URL
+    {strip_trailing_ws(lists:reverse(Acc)), []};
 split_url_title([{{punc, doubleq}, _} | Rest], Acc) ->
     {Title, _} = collect_until_quote(Rest, []),
-    {lists:reverse(Acc), Title};
+    {strip_trailing_ws(lists:reverse(Acc)), Title};
 split_url_title([{{punc, singleq}, _} | Rest], Acc) ->
     {Title, _} = collect_until_single_quote(Rest, []),
-    {lists:reverse(Acc), Title};
+    {strip_trailing_ws(lists:reverse(Acc)), Title};
+split_url_title([{{ws, _}, _} | Rest], Acc) ->
+    % Collect whitespace but continue - might be before title
+    split_url_title(Rest, [{{ws, sp}, " "} | Acc]);
 split_url_title([H | Rest], Acc) ->
     split_url_title(Rest, [H | Acc]).
+
+%% Strip trailing whitespace tokens from URL
+strip_trailing_ws(Tokens) ->
+    lists:reverse(strip_trailing_ws_rev(lists:reverse(Tokens))).
+
+strip_trailing_ws_rev([{{ws, _}, _} | Rest]) ->
+    strip_trailing_ws_rev(Rest);
+strip_trailing_ws_rev(List) ->
+    List.
 
 collect_until_quote([], Acc) ->
     {lists:reverse(Acc), []};
