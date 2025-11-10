@@ -9,9 +9,13 @@
 
 -module(erlmd).
 
+-include_lib("erlmd/include/types.hrl").
+
 -export([conv/1,
          conv_utf8/1,
-         conv_file/2]).
+         conv_file/2,
+         conv_ast/1,
+         conv_original/1]).
 
 -import(lists, [flatten/1, reverse/1]).
 
@@ -41,25 +45,40 @@
 %%%   - code blocks
 %%%   - horizontal rules
 %%% the parser then does its magic interpolating the references as appropriate
-conv(String) -> Lex = lex(String),
-                % io:format("Lex is ~p~n", [Lex]),
-                UntypedLines = make_lines(Lex),
-                % io:format("UntypedLines are ~p~n", [UntypedLines]),
-                {TypedLines, Refs} = type_lines(UntypedLines),
-                % io:format("TypedLines are ~p~nRefs is ~p~n",
-                %          [TypedLines, Refs]),
-                parse(TypedLines, Refs).
+%% @doc Convert Markdown to HTML using AST pipeline
+conv(String) ->
+    conv_ast(String).
+
+%% @doc Convert Markdown to HTML using AST pipeline
+-spec conv_ast(list()) -> list().
+conv_ast(String) ->
+    Lex = lex(String),
+    UntypedLines = make_lines(Lex),
+    {TypedLines, Refs} = type_lines(UntypedLines),
+    AST = erlmd_ast:build(TypedLines, Refs),
+    erlmd_html:render(AST).
+
+%% @doc Original implementation (for comparison testing)
+conv_original(String) ->
+    Lex = lex(String),
+    % io:format("Lex is ~p~n", [Lex]),
+    UntypedLines = make_lines(Lex),
+    % io:format("UntypedLines are ~p~n", [UntypedLines]),
+    {TypedLines, Refs} = type_lines(UntypedLines),
+    % io:format("TypedLines are ~p~nRefs is ~p~n",
+    %          [TypedLines, Refs]),
+    parse(TypedLines, Refs).
 
 -spec conv_utf8(list()) -> list().
 conv_utf8(Utf8) ->
     Str = xmerl_ucs:from_utf8(Utf8),
-    Res = conv(Str),
+    Res = conv_ast(Str),
     xmerl_ucs:to_utf8(Res).
 
 conv_file(FileIn, FileOut) ->
     case file:open(FileIn, [read]) of
         {ok, Device} -> Input = get_all_lines(Device,[]),
-                        Output = conv(Input),
+                        Output = conv_ast(Input),
                         write(FileOut, Output);
         _            -> error
     end.

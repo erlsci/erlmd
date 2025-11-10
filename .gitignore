@@ -1,3 +1,5 @@
 *.beam
+*crash.dump
 /.eunit/
 /_build
+/.claude
