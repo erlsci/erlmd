@@ -7,7 +7,7 @@
 %%% Created : 10 Sep 2009 by gordonguthrie@backawinner.gg
 %%%-------------------------------------------------------------------
 
--module(markdown).
+-module(erlmd).
 
 -export([conv/1,
          conv_utf8/1,
