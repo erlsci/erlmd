@@ -958,7 +958,8 @@ grab_empties1(List, E) ->
     {List, E}.
 
 merge_tokens(P1, P2) ->
-    lists:flatten([P1, {string, " "} | P2]).
+    NewP1 = make_br(P1),
+    lists:flatten([NewP1, {string, ""} | P2]).
 
 merge_with_br(P1, P2) ->
     NewP1 = make_br(P1),
@@ -967,9 +968,9 @@ merge_with_br(P1, P2) ->
 make_br(List) ->
     case lists:reverse(List) of
         [{{lf, _}, _}, {{ws, comp}, _} | T] ->
-            lists:reverse([{tags, "<br /> "} | T]);
+            lists:reverse([{tags, " <br />\n"} | T]);
         [{{lf, _}, _}, {{ws, tab}, _} | T] ->
-            lists:reverse([{tags, "<br /> "} | T]);
+            lists:reverse([{tags, " <br />\n"} | T]);
         _ ->
             List
     end.
