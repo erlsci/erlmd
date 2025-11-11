@@ -271,13 +271,13 @@ parse_blocks([{{ol, _P}, _} | _T] = List, Refs, Acc) ->
 
 %% Code blocks
 parse_blocks([{{codeblock, P1}, S1}, {{codeblock, P2}, S2} | T], Refs, Acc) ->
-    Merged = lists:flatten([P1 | P2]),
+    Merged = merge_tokens(P1, P2),
     parse_blocks([{{codeblock, Merged}, S1 ++ S2} | T], Refs, Acc);
 
 parse_blocks([{{codeblock, P1}, S1} | T1], Refs, Acc) ->
     case grab_empties(T1) of
         {[{{codeblock, P2}, S2} | T2], E} ->
-            Merged = lists:flatten([P1, E | P2]),
+            Merged = merge_tokens(P1, E ++ P2),
             parse_blocks([{{codeblock, Merged}, S1 ++ E ++ S2} | T2], Refs, Acc);
         {Rest, _} ->
             Content = make_plain_str(snip(P1)),
