@@ -336,23 +336,24 @@ collect_list_items(_Type, [], _Refs, Acc, Tight) ->
     {[], Acc, Tight};
 
 collect_list_items(Type, [{{Type, P}, _} | T], Refs, Acc, Tight) ->
-    {Rest, ItemContent, NewTight} = grab_list_item(T, Refs, [], Tight),
+    {Rest, ItemContent, ItemWrap} = grab_list_item(T, Refs, [], Tight),
 
     % Build the item's blocks
     ItemBlocks = parse_list_item_content(P, ItemContent, Refs),
     Item = #list_item{content = ItemBlocks},
 
-    % Determine if next item triggers loose mode
+    % Check if there's a blank/linefeed between this item and the next
     NextTight = case T of
-        [] -> NewTight;
-        [H2 | _T2] ->
-            case H2 of
-                {linefeed, _} -> false;  % loose list
-                _ -> NewTight
-            end
+        [] -> ItemWrap;
+        [{linefeed, _} | _] -> false;  % Blank between items
+        [{blank, _} | _] -> false;     % Blank between items
+        _ -> ItemWrap  % Use wrap status from item content
     end,
 
-    collect_list_items(Type, Rest, Refs, [Item | Acc], NextTight);
+    % Once loose, stay loose (this is the key fix!)
+    FinalTight = Tight andalso NextTight,
+
+    collect_list_items(Type, Rest, Refs, [Item | Acc], FinalTight);
 
 collect_list_items(_Type, List, _Refs, Acc, Tight) ->
     {List, Acc, Tight}.
@@ -360,7 +361,8 @@ collect_list_items(_Type, List, _Refs, Acc, Tight) ->
 %% @doc Parse the content of a single list item
 parse_list_item_content(P, AdditionalContent, Refs) ->
     % List items contain at least one paragraph
-    Content = build_inline(P, Refs),
+    % Use snip to remove trailing linefeed
+    Content = build_inline(snip(P), Refs),
     Para = #paragraph{content = Content},
 
     % Additional content goes here if present
@@ -369,10 +371,95 @@ parse_list_item_content(P, AdditionalContent, Refs) ->
         _ -> [Para | AdditionalContent]  % Include additional blocks
     end.
 
+%% @doc Check if a line has double indent (8+ spaces or 2+ tabs)
+%% Returns {true, Rest} if double-indented, false otherwise
+is_double_indent(List) ->
+    is_double_indent1(List, 0).
+
+is_double_indent1([], _N) ->
+    false;
+is_double_indent1(Rest, N) when N >= 8 ->
+    {true, Rest};
+is_double_indent1([{{ws, sp}, _} | T], N) ->
+    is_double_indent1(T, N + 1);
+is_double_indent1([{{ws, tab}, _} | T], N) ->
+    is_double_indent1(T, N + 4);
+is_double_indent1([{{ws, comp}, WS} | T], N) when is_list(WS) ->
+    is_double_indent1(T, N + length(WS));
+is_double_indent1(_List, _N) ->
+    false.
+
 %% @doc Grab content for a list item (handles nested content)
+%% Based on original grab/4 from erlmd.erl lines 255-293
+grab_list_item([], _Refs, Acc, Wrap) ->
+    {[], lists:reverse(Acc), Wrap};
+
+%% Codeblocks in list items (with double indent check)
+grab_list_item([{{codeblock, P}, S} | T] = List, Refs, Acc, Wrap) ->
+    case is_double_indent(S) of
+        false ->
+            % Not double-indented, stop grabbing
+            {List, lists:reverse(Acc), false};
+        {true, _Content} ->
+            % Double-indented codeblock, include it
+            % Note: The codeblock tokens are already processed
+            ContentStr = make_plain_str(snip(P)),
+            CodeBlock = #code_block{content = ContentStr, language = undefined},
+            grab_list_item(T, Refs, [CodeBlock | Acc], Wrap)
+    end;
+
+%% Linefeed when in tight mode - might transition to loose
+grab_list_item([{linefeed, _} | T], Refs, Acc, false) ->
+    % Call grab_list_item2 to check for following content
+    grab_list_item2(T, Refs, Acc, T, Acc, true);
+
+%% Linefeed when already in loose mode - include blank line
+grab_list_item([{linefeed, _} | T], Refs, Acc, true) ->
+    grab_list_item(T, Refs, [#blank_line{} | Acc], true);
+
+%% Blank when in tight mode - might transition to loose
+grab_list_item([{blank, _} | T], Refs, Acc, false) ->
+    grab_list_item2(T, Refs, Acc, T, Acc, true);
+
+%% Blank when already in loose mode - include blank line
+grab_list_item([{blank, _} | T], Refs, Acc, true) ->
+    grab_list_item(T, Refs, [#blank_line{} | Acc], true);
+
+%% Normal lines - add as paragraph
+grab_list_item([{normal, P} | T], Refs, Acc, Wrap) ->
+    Content = build_inline(P, Refs),
+    Para = #paragraph{content = Content},
+    grab_list_item(T, Refs, [Para | Acc], Wrap);
+
+%% Anything else stops grabbing
 grab_list_item(List, _Refs, Acc, Wrap) ->
-    % Simplified version - just return what we have
     {List, lists:reverse(Acc), Wrap}.
+
+%% @doc Secondary grab for checking continuation after blank/linefeed
+%% Based on original grab2/6 from erlmd.erl lines 319-337
+grab_list_item2([{normal, P} | T], Refs, Acc, OrigList, OrigAcc, Wrap) ->
+    % Check if normal line starts with whitespace (continuation)
+    case P of
+        [{{ws, _}, _} | _] ->
+            % Starts with whitespace, it's a continuation
+            Content = build_inline(P, Refs),
+            Para = #paragraph{content = Content},
+            grab_list_item(T, Refs, [Para | Acc], Wrap);
+        _ ->
+            % Doesn't start with whitespace, stop grabbing
+            % Return the original state (before the blanks)
+            {OrigList, OrigAcc, false}
+    end;
+
+grab_list_item2([{linefeed, _} | T], Refs, Acc, OrigList, OrigAcc, _Wrap) ->
+    grab_list_item2(T, Refs, [#blank_line{} | Acc], OrigList, OrigAcc, true);
+
+grab_list_item2([{blank, _} | T], Refs, Acc, OrigList, OrigAcc, _Wrap) ->
+    grab_list_item2(T, Refs, [#blank_line{} | Acc], OrigList, OrigAcc, true);
+
+grab_list_item2(_List, _Refs, _Acc, OrigList, OrigAcc, _Wrap) ->
+    % Stopped without finding continuation, return original state
+    {OrigList, OrigAcc, true}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
