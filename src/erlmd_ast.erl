@@ -271,13 +271,13 @@ parse_blocks([{{ol, _P}, _} | _T] = List, Refs, Acc) ->
 
 %% Code blocks
 parse_blocks([{{codeblock, P1}, S1}, {{codeblock, P2}, S2} | T], Refs, Acc) ->
-    Merged = lists:flatten([P1 | P2]),
+    Merged = merge_tokens(P1, P2),
     parse_blocks([{{codeblock, Merged}, S1 ++ S2} | T], Refs, Acc);
 
 parse_blocks([{{codeblock, P1}, S1} | T1], Refs, Acc) ->
     case grab_empties(T1) of
         {[{{codeblock, P2}, S2} | T2], E} ->
-            Merged = lists:flatten([P1, E | P2]),
+            Merged = merge_tokens(P1, E ++ P2),
             parse_blocks([{{codeblock, Merged}, S1 ++ E ++ S2} | T2], Refs, Acc);
         {Rest, _} ->
             Content = make_plain_str(snip(P1)),
@@ -327,40 +327,113 @@ grab_block_html_content([{_LineType, Content} | T], Type, Acc) ->
 %% @doc Parse a list (ul or ol) and return the AST node
 -spec parse_list(ul | ol, [typed_line()], refs()) -> {[typed_line()], #list{}}.
 parse_list(Type, Lines, Refs) ->
-    {Rest, Items, Tight} = collect_list_items(Type, Lines, Refs, [], true),
+    {Rest, Items, Tight} = collect_list_items(Type, Lines, Refs, [], true, false),
     List = #list{type = Type, items = lists:reverse(Items), tight = Tight},
     {Rest, List}.
 
 %% @doc Collect list items recursively
-collect_list_items(_Type, [], _Refs, Acc, Tight) ->
-    {[], Acc, Tight};
+%% Parameters:
+%%   EverTight - has the list been tight throughout (no blanks between items yet)
+%%   HasBlankBefore - is there a blank before the current item
+collect_list_items(_Type, [], _Refs, Acc, EverTight, _HasBlankBefore) ->
+    {[], Acc, EverTight};
 
-collect_list_items(Type, [{{Type, P}, _} | T], Refs, Acc, Tight) ->
-    {Rest, ItemContent, NewTight} = grab_list_item(T, Refs, [], Tight),
+collect_list_items(Type, [{{Type, P}, _} | T], Refs, Acc, EverTight, HasBlankBefore) ->
+    {Rest, ItemContent, ItemWrap} = grab_list_item(T, Refs, [], true),
 
     % Build the item's blocks
     ItemBlocks = parse_list_item_content(P, ItemContent, Refs),
-    Item = #list_item{content = ItemBlocks},
 
-    % Determine if next item triggers loose mode
-    NextTight = case T of
-        [] -> NewTight;
-        [H2 | _T2] ->
-            case H2 of
-                {linefeed, _} -> false;  % loose list
-                _ -> NewTight
-            end
+    % Check if item contains multiple blocks or blank lines (makes it loose)
+    HasMultipleBlocks = length(ItemBlocks) > 1 orelse lists:any(fun(B) -> element(1, B) =:= blank_line end, ItemBlocks),
+
+    % Check if this is the last item (no more items of same type in Rest)
+    IsLastItem = not has_next_item(Type, Rest),
+
+    % ItemWrap semantics:
+    %   true  = item ended cleanly (no trailing blanks that ended the item)
+    %   false = item had trailing blanks
+    % Note: If it's the last item, trailing blanks just end the list, not separate items
+    HasBlankAfter = (not ItemWrap) andalso (not IsLastItem),
+
+    % Determine if this item should be tight
+    % Complex rule combining original erlmd behavior:
+    % 1. If list has been tight throughout (EverTight=true): item is tight if no blanks around it AND single block
+    % 2. If list has become loose (EverTight=false): items are loose EXCEPT...
+    % 3. Exception: The very last item can be tight if there's no blank immediately before it AND single block
+    ItemTight = if
+        % Items with multiple blocks or internal blanks are always loose
+        HasMultipleBlocks ->
+            false;
+        % Case 1: List is still tight, item has no blanks around it, single block
+        EverTight andalso not HasBlankBefore andalso not HasBlankAfter ->
+            true;
+        % Case 2: Last item exception - list is loose but last item has no blank before, single block
+        not EverTight andalso IsLastItem andalso not HasBlankBefore ->
+            true;
+        % Case 3: Everything else is loose
+        true ->
+            false
     end,
 
-    collect_list_items(Type, Rest, Refs, [Item | Acc], NextTight);
+    Item = #list_item{content = ItemBlocks, tight = ItemTight},
 
-collect_list_items(_Type, List, _Refs, Acc, Tight) ->
-    {List, Acc, Tight}.
+    % Update EverTight: becomes false if this item had any blanks around it
+    NewEverTight = EverTight andalso not HasBlankBefore andalso not HasBlankAfter,
+
+    collect_list_items(Type, Rest, Refs, [Item | Acc], NewEverTight, HasBlankAfter);
+
+collect_list_items(_Type, List, _Refs, Acc, EverTight, _HasBlankBefore) ->
+    {List, Acc, EverTight}.
+
+%% @doc Check if there's another list item of the same type in the remaining tokens
+has_next_item(_Type, []) ->
+    false;
+has_next_item(Type, [{{Type, _}, _} | _]) ->
+    true;  % Immediate next item
+has_next_item(Type, [{linefeed, _} | T]) ->
+    has_next_item(Type, T);  % Skip blanks
+has_next_item(Type, [{blank, _} | T]) ->
+    has_next_item(Type, T);  % Skip blanks
+has_next_item(_Type, _) ->
+    false.  % Hit something else, no more items
+
+%% @doc Skip blanks and check if there's another list item of the same type
+%% Returns {FoundBlank, HasNextItem}
+skip_blanks([], _Type) ->
+    {false, false};  % End of list
+skip_blanks([{{ItemType, _}, _} | _], Type) when ItemType =:= Type ->
+    {false, false};  % Immediately next is same list type (no blank between)
+skip_blanks([{linefeed, _} | Rest], Type) ->
+    case skip_blanks_after_one(Rest, Type) of
+        true -> {true, true};   % Found list item after blank(s)
+        false -> {true, false}  % Blank(s) but no more list items
+    end;
+skip_blanks([{blank, _} | Rest], Type) ->
+    case skip_blanks_after_one(Rest, Type) of
+        true -> {true, true};
+        false -> {true, false}
+    end;
+skip_blanks(_, _) ->
+    {false, false}.  % Different type or end
+
+%% Helper: after seeing at least one blank, check if there's a matching list item
+skip_blanks_after_one([], _Type) ->
+    false;
+skip_blanks_after_one([{{ItemType, _}, _} | _], Type) when ItemType =:= Type ->
+    true;  % Found matching type
+skip_blanks_after_one([{linefeed, _} | Rest], Type) ->
+    skip_blanks_after_one(Rest, Type);
+skip_blanks_after_one([{blank, _} | Rest], Type) ->
+    skip_blanks_after_one(Rest, Type);
+skip_blanks_after_one(_, _) ->
+    false.
 
 %% @doc Parse the content of a single list item
 parse_list_item_content(P, AdditionalContent, Refs) ->
     % List items contain at least one paragraph
-    Content = build_inline(P, Refs),
+    % Use snip to remove trailing linefeed
+    Content = build_inline(snip(P), Refs),
     Para = #paragraph{content = Content},
 
     % Additional content goes here if present
@@ -369,10 +442,116 @@ parse_list_item_content(P, AdditionalContent, Refs) ->
         _ -> [Para | AdditionalContent]  % Include additional blocks
     end.
 
+%% @doc Check if a line has double indent (8+ spaces or 2+ tabs)
+%% Returns {true, Rest} if double-indented, false otherwise
+is_double_indent(List) ->
+    is_double_indent1(List, 0).
+
+is_double_indent1([], _N) ->
+    false;
+is_double_indent1(Rest, N) when N >= 8 ->
+    {true, Rest};
+is_double_indent1([{{ws, sp}, _} | T], N) ->
+    is_double_indent1(T, N + 1);
+is_double_indent1([{{ws, tab}, _} | T], N) ->
+    is_double_indent1(T, N + 4);
+is_double_indent1([{{ws, comp}, WS} | T], N) when is_list(WS) ->
+    is_double_indent1(T, N + length(WS));
+is_double_indent1(_List, _N) ->
+    false.
+
 %% @doc Grab content for a list item (handles nested content)
+%% Based on original grab/4 from erlmd.erl lines 255-293
+grab_list_item([], _Refs, Acc, Wrap) ->
+    {[], lists:reverse(Acc), Wrap};
+
+%% Codeblocks in list items (with double indent check)
+grab_list_item([{{codeblock, P}, S} | T] = List, Refs, Acc, Wrap) ->
+    case is_double_indent(S) of
+        false ->
+            % Not double-indented, stop grabbing
+            {List, lists:reverse(Acc), false};
+        {true, _Content} ->
+            % Double-indented codeblock, include it
+            % Note: The codeblock tokens are already processed
+            ContentStr = make_plain_str(snip(P)),
+            CodeBlock = #code_block{content = ContentStr, language = undefined},
+            grab_list_item(T, Refs, [CodeBlock | Acc], Wrap)
+    end;
+
+%% Linefeed when in tight mode - might transition to loose
+grab_list_item([{linefeed, _} | T], Refs, Acc, false) ->
+    % Call grab_list_item2 to check for following content
+    grab_list_item2(T, Refs, Acc, T, Acc, true);
+
+%% Linefeed when already in loose mode - check for continuation
+grab_list_item([{linefeed, _} | T], Refs, Acc, true) ->
+    grab_list_item2(T, Refs, Acc, T, Acc, true);
+
+%% Blank when in tight mode - might transition to loose
+grab_list_item([{blank, _} | T], Refs, Acc, false) ->
+    grab_list_item2(T, Refs, Acc, T, Acc, true);
+
+%% Blank when already in loose mode - check for continuation
+grab_list_item([{blank, _} | T], Refs, Acc, true) ->
+    grab_list_item2(T, Refs, Acc, T, Acc, true);
+
+%% Normal lines - add as paragraph
+grab_list_item([{normal, P} | T], Refs, Acc, Wrap) ->
+    Content = build_inline(P, Refs),
+    Para = #paragraph{content = Content},
+    grab_list_item(T, Refs, [Para | Acc], Wrap);
+
+%% Anything else stops grabbing
 grab_list_item(List, _Refs, Acc, Wrap) ->
-    % Simplified version - just return what we have
     {List, lists:reverse(Acc), Wrap}.
+
+%% @doc Check if a token list has actual content (not just whitespace/linefeeds)
+has_content([]) ->
+    false;
+has_content([{{ws, _}, _} | T]) ->
+    has_content(T);
+has_content([{{lf, _}, _} | T]) ->
+    has_content(T);
+has_content([_ | _]) ->
+    true.
+
+%% @doc Secondary grab for checking continuation after blank/linefeed
+%% Based on original grab2/6 from erlmd.erl lines 319-337
+grab_list_item2([{normal, P} | T], Refs, Acc, OrigList, OrigAcc, Wrap) ->
+    % Check if normal line starts with whitespace (continuation)
+    case P of
+        [{{ws, _}, _} | RestTokens] ->
+            % Starts with whitespace, might be a continuation
+            % Check if there's actual content after the whitespace
+            case has_content(RestTokens) of
+                true ->
+                    % Real continuation with content
+                    % Add a single blank line separator, then the paragraph
+                    Content = build_inline(P, Refs),
+                    Para = #paragraph{content = Content},
+                    grab_list_item(T, Refs, [Para, #blank_line{} | Acc], Wrap);
+                false ->
+                    % Just whitespace, treat as another blank line
+                    grab_list_item2(T, Refs, Acc, OrigList, OrigAcc, true)
+            end;
+        _ ->
+            % Doesn't start with whitespace, stop grabbing
+            % Return the original state (before the blanks)
+            {OrigList, OrigAcc, false}
+    end;
+
+grab_list_item2([{linefeed, _} | T], Refs, Acc, OrigList, OrigAcc, _Wrap) ->
+    % Just skip over blank lines, don't accumulate them
+    grab_list_item2(T, Refs, Acc, OrigList, OrigAcc, true);
+
+grab_list_item2([{blank, _} | T], Refs, Acc, OrigList, OrigAcc, _Wrap) ->
+    % Just skip over blank lines, don't accumulate them
+    grab_list_item2(T, Refs, Acc, OrigList, OrigAcc, true);
+
+grab_list_item2(_List, _Refs, _Acc, OrigList, OrigAcc, _Wrap) ->
+    % Stopped without finding continuation, return original state (stay tight)
+    {OrigList, OrigAcc, false}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
@@ -547,8 +726,17 @@ parse_emphasis_and_code([$*, $*, $* | T], Acc) ->
             Strong = #strong{content = [Em], delimiter = $*},
             parse_emphasis_and_code(Rest, [Strong | Acc]);
         nomatch ->
-            TextNode = #text{content = "***"},
-            parse_emphasis_and_code(T, [TextNode | Acc])
+            % Fall back to trying ** for strong emphasis
+            case collect_until(T, [$*, $*]) of
+                {Rest2, Content2} ->
+                    Strong = #strong{content = [#text{content = Content2}], delimiter = $*},
+                    parse_emphasis_and_code(Rest2, [Strong | Acc]);
+                nomatch ->
+                    % Special case: *** with no closing becomes <em>*</em> + remaining text
+                    % The first ** is emphasis delimiter, third * is the content
+                    Em = #emphasis{content = [#text{content = "*"}], delimiter = $*},
+                    parse_emphasis_and_code(T, [Em | Acc])
+            end
     end;
 
 %% Escaped strong
@@ -596,8 +784,17 @@ parse_emphasis_and_code([$_, $_, $_ | T], Acc) ->
             Strong = #strong{content = [Em], delimiter = $_},
             parse_emphasis_and_code(Rest, [Strong | Acc]);
         nomatch ->
-            TextNode = #text{content = "___"},
-            parse_emphasis_and_code(T, [TextNode | Acc])
+            % Fall back to trying __ for strong emphasis
+            case collect_until(T, [$_, $_]) of
+                {Rest2, Content2} ->
+                    Strong = #strong{content = [#text{content = Content2}], delimiter = $_},
+                    parse_emphasis_and_code(Rest2, [Strong | Acc]);
+                nomatch ->
+                    % Special case: ___ with no closing becomes <em>_</em> + remaining text
+                    % The first __ is emphasis delimiter, third _ is the content
+                    Em = #emphasis{content = [#text{content = "_"}], delimiter = $_},
+                    parse_emphasis_and_code(T, [Em | Acc])
+            end
     end;
 
 parse_emphasis_and_code([$\\, $_, $_ | T], Acc) ->
@@ -766,6 +963,9 @@ collect_regular_text([H | T], Acc) when H =:= $*; H =:= $_; H =:= $`;
         [] -> {[H | T], ""};  % No regular text collected, return empty string
         _ -> {[H | T], lists:reverse(Acc)}
     end;
+collect_regular_text([?TAB | T], Acc) ->
+    % Expand tabs to 4 spaces in regular text
+    collect_regular_text(T, lists:reverse("    ") ++ Acc);
 collect_regular_text([H | T], Acc) ->
     collect_regular_text(T, [H | Acc]).
 
@@ -958,7 +1158,8 @@ grab_empties1(List, E) ->
     {List, E}.
 
 merge_tokens(P1, P2) ->
-    lists:flatten([P1, {string, " "} | P2]).
+    NewP1 = make_br(P1),
+    lists:flatten([NewP1, {string, ""} | P2]).
 
 merge_with_br(P1, P2) ->
     NewP1 = make_br(P1),
@@ -967,9 +1168,9 @@ merge_with_br(P1, P2) ->
 make_br(List) ->
     case lists:reverse(List) of
         [{{lf, _}, _}, {{ws, comp}, _} | T] ->
-            lists:reverse([{tags, "<br /> "} | T]);
+            lists:reverse([{tags, " <br />\n"} | T]);
         [{{lf, _}, _}, {{ws, tab}, _} | T] ->
-            lists:reverse([{tags, "<br /> "} | T]);
+            lists:reverse([{tags, " <br />\n"} | T]);
         _ ->
             List
     end.

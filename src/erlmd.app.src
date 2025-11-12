@@ -1,5 +1,13 @@
 {application, erlmd,
- [{description, "An implementation of markdown written in Erlang (fork of erlmarkdown)"},
+ [{description, "Erlang Markdown parser with HTML and AST output (erlmarkdown fork)"},
   {vsn, "1.2.0"},
   {applications, [kernel, stdlib]},
-  {license, "BSD 2-Clause"}]}.
+  {links, [
+    {"GitHub", "https://github.com/erlsci/erlmd"},
+    {"Hex", "https://hex.pm/packages/erlmd"}
+  ]},
+  {licenses, ["BSD-2-Clause"]},
+  {exclude_paths, [
+    "priv"
+  ]}
+]}.

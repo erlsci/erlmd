@@ -12,10 +12,12 @@
 -include_lib("erlmd/include/types.hrl").
 
 -export([conv/1,
+         conv/2,
          conv_utf8/1,
          conv_file/2,
          conv_ast/1,
-         conv_original/1]).
+         conv_html/1,
+         default_opts/0]).
 
 -import(lists, [flatten/1, reverse/1]).
 
@@ -45,40 +47,60 @@
 %%%   - code blocks
 %%%   - horizontal rules
 %%% the parser then does its magic interpolating the references as appropriate
-%% @doc Convert Markdown to HTML using AST pipeline
-conv(String) ->
-    conv_ast(String).
 
-%% @doc Convert Markdown to HTML using AST pipeline
--spec conv_ast(list()) -> list().
-conv_ast(String) ->
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%% Public API
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% @doc Default options for conversion
+-spec default_opts() -> map().
+default_opts() ->
+    #{format => html}.
+
+%% @doc Convert Markdown using default options (HTML output)
+-spec conv(string()) -> string().
+conv(Input) ->
+    conv(Input, default_opts()).
+
+%% @doc Convert Markdown with options
+%% Options:
+%%   #{format => html} - Convert to HTML (default)
+%%   #{format => ast}  - Return AST structure
+-spec conv(string() | document(), map()) -> string() | document().
+conv(Input, #{format := ast}) ->
+    conv_ast(Input);
+conv(Input, #{format := html}) ->
+    conv_html(Input).
+
+%% @doc Convert Markdown string to AST
+-spec conv_ast(string()) -> document().
+conv_ast(String) when is_list(String) ->
     Lex = lex(String),
     UntypedLines = make_lines(Lex),
     {TypedLines, Refs} = type_lines(UntypedLines),
-    AST = erlmd_ast:build(TypedLines, Refs),
-    erlmd_html:render(AST).
+    erlmd_ast:build(TypedLines, Refs).
 
-%% @doc Original implementation (for comparison testing)
-conv_original(String) ->
-    Lex = lex(String),
-    % io:format("Lex is ~p~n", [Lex]),
-    UntypedLines = make_lines(Lex),
-    % io:format("UntypedLines are ~p~n", [UntypedLines]),
-    {TypedLines, Refs} = type_lines(UntypedLines),
-    % io:format("TypedLines are ~p~nRefs is ~p~n",
-    %          [TypedLines, Refs]),
-    parse(TypedLines, Refs).
+%% @doc Convert to HTML (accepts AST or Markdown string)
+-spec conv_html(document() | string()) -> string().
+conv_html(AST) when is_record(AST, document) ->
+    erlmd_html:render(AST);
+conv_html(String) when is_list(String) ->
+    conv_html(conv_ast(String)).
 
+%% @doc Convert UTF-8 encoded Markdown to HTML
 -spec conv_utf8(list()) -> list().
 conv_utf8(Utf8) ->
     Str = xmerl_ucs:from_utf8(Utf8),
-    Res = conv_ast(Str),
+    Res = conv(Str),  % Uses default HTML output
     xmerl_ucs:to_utf8(Res).
 
+%% @doc Convert Markdown file to HTML file
 conv_file(FileIn, FileOut) ->
     case file:open(FileIn, [read]) of
         {ok, Device} -> Input = get_all_lines(Device,[]),
-                        Output = conv_ast(Input),
+                        Output = conv(Input),  % Uses default HTML output
                         write(FileOut, Output);
         _            -> error
     end.

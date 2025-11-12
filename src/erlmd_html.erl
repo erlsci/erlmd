@@ -128,13 +128,14 @@ render_inline(#html_inline{content = Content}) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% @doc Render a list item
-render_list_item(#list_item{content = Blocks}, Tight) ->
-    BlockHTML = case Tight of
+render_list_item(#list_item{content = Blocks, tight = ItemTight}, _ListTight) ->
+    % Use the item's own tight flag, not the list's overall tight flag
+    BlockHTML = case ItemTight of
         true ->
-            % Tight lists don't wrap items in <p> tags
+            % Tight items don't wrap content in <p> tags
             lists:map(fun strip_para/1, Blocks);
         false ->
-            % Loose lists keep <p> tags
+            % Loose items keep <p> tags
             lists:map(fun render_block/1, Blocks)
     end,
     ContentStr = string:strip(lists:flatten(BlockHTML), right, $\n),

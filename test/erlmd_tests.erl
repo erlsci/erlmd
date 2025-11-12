@@ -9,8 +9,6 @@ unit_test_() ->
      ?_assertEqual("<p>=&lt;</p>", erlmd:conv("=<")),
      ?_assertEqual("<p>&lt;=</p>", erlmd:conv("<=")),
      ?_assertEqual("<p>&lt;></p>", erlmd:conv("<>")),
-     % ?_assertEqual("<p><flame on>\nblah\n</flame off>\n<bingo>\n<bingo master></p>", erlmd:conv("<flame on>\nblah\n</flame off>\n<bingo>\n<bingo master>")),
-     % ?_assertEqual("<p><flame on>\n</flame on></p>", erlmd:conv("<flame on>\n</flame on>")),
      ?_assertEqual("<p><flame on></p>", erlmd:conv("<flame on>")),
      ?_assertEqual("<table>\n<img src=\"http://example.com\">\n</table>", erlmd:conv("<table>\n<img src=\"http://example.com\">\n</table>")),
      % ?_assertEqual("<table>\n<tr>\n<td>\n***FAQ*** - *WTF?* Postal Chess Records is a mash-up between Postal Chess and Chess Records where two Record Selectors slug it out over the interwebs in a sonic-soundclash, duh!\n</td>\n<td>\n<img src=\"http://imgur.com/VmdEL.png\">\n</td>\n</tr>\n</table>", erlmd:conv("<table>\n<tr>\n<td>\n***FAQ*** - *WTF?* Postal Chess Records is a mash-up between Postal Chess and Chess Records where two Record Selectors slug it out over the interwebs in a sonic-soundclash, duh!\n</td>\n<td>\n<img src=\"http://imgur.com/VmdEL.png\">\n</td>\n</tr>\n</table>")),
@@ -34,6 +32,8 @@ unit_test_() ->
      ?_assertEqual("<pre><code>alice\nbob\n</code></pre>\n\n<p>chaz</p>", erlmd:conv("    alice\n    bob\nchaz")),
      ?_assertEqual("<blockquote>\n  <p>alice\n<br /> bob\n<br /> chaz</p>\n</blockquote>", erlmd:conv("> alice\n> bob\n> chaz")),
      ?_assertEqual("<blockquote>\n  <p>alice\n<br /> \n<br /> bob\n<br /> chaz</p>\n</blockquote>", erlmd:conv("> alice\n> \n> bob\n> chaz")),
+     % Blockquote with hard line break (two trailing spaces) - AST correctly converts to <br />
+     ?_assertEqual("<blockquote>\n  <p>alice <br />\n<br /> bob</p>\n</blockquote>", erlmd:conv("> alice  \n> bob")),
      ?_assertEqual("<ul>\n<li>a</li>\n<li>b</li>\n</ul>", erlmd:conv(" - a\n - b\n")),
      ?_assertEqual("<ol>\n<li>a</li>\n<li>b</li>\n</ol>", erlmd:conv(" 1. a\n 2. b\n")),
      ?_assertEqual("<p>blah <img src=\"http://example.com\" alt=\"blah\" title=\"title\" /> blah</p>", erlmd:conv("blah ![blah][1] blah\n\n\n  [1]: http://example.com (title)")),
@@ -186,6 +186,8 @@ unit_test_() ->
      ?_assertEqual("<p>xyz\nab:c\na</p>", erlmd:conv("xyz\r\nab:c\na")),
      ?_assertEqual("<p>xyz\nab:c\na</p>", erlmd:conv("xyz\nab:c\na")),
      ?_assertEqual("<p>xyz    ab:c\na</p>", erlmd:conv("xyz\tab:c\na")),
+     % Tabs in code spans should be preserved as literal tabs (not expanded)
+     ?_assertEqual("<p>Text <code>code\ttab</code> here</p>", erlmd:conv("Text `code\ttab` here")),
      ?_assertEqual("<p>xyz ab:c\na</p>", erlmd:conv("xyz ab:c\na")),
      ?_assertEqual("<p>xyz(ab:c\na</p>", erlmd:conv("xyz(ab:c\na")),
      ?_assertEqual("<p>xyz]ab:c\na</p>", erlmd:conv("xyz]ab:c\na")),
