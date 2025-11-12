@@ -34,6 +34,8 @@ unit_test_() ->
      ?_assertEqual("<pre><code>alice\nbob\n</code></pre>\n\n<p>chaz</p>", erlmd:conv("    alice\n    bob\nchaz")),
      ?_assertEqual("<blockquote>\n  <p>alice\n<br /> bob\n<br /> chaz</p>\n</blockquote>", erlmd:conv("> alice\n> bob\n> chaz")),
      ?_assertEqual("<blockquote>\n  <p>alice\n<br /> \n<br /> bob\n<br /> chaz</p>\n</blockquote>", erlmd:conv("> alice\n> \n> bob\n> chaz")),
+     % Blockquote with hard line break (two trailing spaces) - AST correctly converts to <br />
+     ?_assertEqual("<blockquote>\n  <p>alice <br />\n<br /> bob</p>\n</blockquote>", erlmd:conv("> alice  \n> bob")),
      ?_assertEqual("<ul>\n<li>a</li>\n<li>b</li>\n</ul>", erlmd:conv(" - a\n - b\n")),
      ?_assertEqual("<ol>\n<li>a</li>\n<li>b</li>\n</ol>", erlmd:conv(" 1. a\n 2. b\n")),
      ?_assertEqual("<p>blah <img src=\"http://example.com\" alt=\"blah\" title=\"title\" /> blah</p>", erlmd:conv("blah ![blah][1] blah\n\n\n  [1]: http://example.com (title)")),
