@@ -1,11 +1,10 @@
 # erlmd
 
-*Erlang Markdown parser with HTML and AST output (erlmarkdown fork)*
+*A new Erlang AST-based Markdown parser*
 
 ## About
 
-- **Original library** ([erlmarkdown](https://github.com/erlware/erlmarkdown)): Focused on Markdown → HTML conversion, preserved with community improvements in the branch `release/1.1.x`
-- **This fork** (erlsci/erlmd): Added support for Markdown → AST (Abstract Syntax Tree) - `release/1.2.x`
+Versions of this project 1.2.x and early are forks of [erlmarkdown](https://github.com/erlware/erlmarkdown), with 1.1.x being HTML-only, and 1.2.x introducing a Markdown AST. Those releases of the software are licnesed as BSD-2. Versions 1.3 and above share no code in common with earlier versions, instead sharing a design lineage from the [Rust library](https://github.com/wooorm/markdown-rs), adjusted to keep Erlang's strengths in mind. Versions 1.3 and above are licensed as Apache-2.
 
 ## Installation
 
@@ -13,7 +12,7 @@ Add to your `rebar.config`:
 
 ```erlang
 {deps, [
-    {erlmd, "1.2.0"}
+    {erlmd, "1.3.0"}
 ]}.
 ```
 
@@ -57,4 +56,4 @@ Add to your `rebar.config`:
 
 ## License
 
-Same as the original Markdown (BSD-style). See the [Daring Fireball](http://daringfireball.net/projects/markdown/) project for details.
+Apache, Version 2.0

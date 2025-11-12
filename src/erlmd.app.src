@@ -1,6 +1,6 @@
 {application, erlmd,
- [{description, "Erlang Markdown parser with HTML and AST output (erlmarkdown fork)"},
-  {vsn, "1.2.0"},
+ [{description, "A new Erlang AST-based Markdown parser"},
+  {vsn, "1.3.0"},
   {applications, [kernel, stdlib]},
   {links, [
     {"GitHub", "https://github.com/erlsci/erlmd"},
