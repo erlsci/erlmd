@@ -57,7 +57,8 @@
 }).
 
 -record(list_item, {
-    content :: [block()]  % list items can contain multiple block elements
+    content :: [block()],  % list items can contain multiple block elements
+    tight :: boolean()     % whether this specific item should be tight (no <p> wrap)
 }).
 
 %% HTML block (pass-through)

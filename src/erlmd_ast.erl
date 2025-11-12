@@ -327,36 +327,107 @@ grab_block_html_content([{_LineType, Content} | T], Type, Acc) ->
 %% @doc Parse a list (ul or ol) and return the AST node
 -spec parse_list(ul | ol, [typed_line()], refs()) -> {[typed_line()], #list{}}.
 parse_list(Type, Lines, Refs) ->
-    {Rest, Items, Tight} = collect_list_items(Type, Lines, Refs, [], true),
+    {Rest, Items, Tight} = collect_list_items(Type, Lines, Refs, [], true, false),
     List = #list{type = Type, items = lists:reverse(Items), tight = Tight},
     {Rest, List}.
 
 %% @doc Collect list items recursively
-collect_list_items(_Type, [], _Refs, Acc, Tight) ->
-    {[], Acc, Tight};
+%% Parameters:
+%%   EverTight - has the list been tight throughout (no blanks between items yet)
+%%   HasBlankBefore - is there a blank before the current item
+collect_list_items(_Type, [], _Refs, Acc, EverTight, _HasBlankBefore) ->
+    {[], Acc, EverTight};
 
-collect_list_items(Type, [{{Type, P}, _} | T], Refs, Acc, Tight) ->
-    {Rest, ItemContent, ItemWrap} = grab_list_item(T, Refs, [], Tight),
+collect_list_items(Type, [{{Type, P}, _} | T], Refs, Acc, EverTight, HasBlankBefore) ->
+    {Rest, ItemContent, ItemWrap} = grab_list_item(T, Refs, [], true),
 
     % Build the item's blocks
     ItemBlocks = parse_list_item_content(P, ItemContent, Refs),
-    Item = #list_item{content = ItemBlocks},
 
-    % Check if there's a blank/linefeed between this item and the next
-    NextTight = case T of
-        [] -> ItemWrap;
-        [{linefeed, _} | _] -> false;  % Blank between items
-        [{blank, _} | _] -> false;     % Blank between items
-        _ -> ItemWrap  % Use wrap status from item content
+    % Check if item contains multiple blocks or blank lines (makes it loose)
+    HasMultipleBlocks = length(ItemBlocks) > 1 orelse lists:any(fun(B) -> element(1, B) =:= blank_line end, ItemBlocks),
+
+    % Check if this is the last item (no more items of same type in Rest)
+    IsLastItem = not has_next_item(Type, Rest),
+
+    % ItemWrap semantics:
+    %   true  = item ended cleanly (no trailing blanks that ended the item)
+    %   false = item had trailing blanks
+    % Note: If it's the last item, trailing blanks just end the list, not separate items
+    HasBlankAfter = (not ItemWrap) andalso (not IsLastItem),
+
+    % Determine if this item should be tight
+    % Complex rule combining original erlmd behavior:
+    % 1. If list has been tight throughout (EverTight=true): item is tight if no blanks around it AND single block
+    % 2. If list has become loose (EverTight=false): items are loose EXCEPT...
+    % 3. Exception: The very last item can be tight if there's no blank immediately before it AND single block
+    ItemTight = if
+        % Items with multiple blocks or internal blanks are always loose
+        HasMultipleBlocks ->
+            false;
+        % Case 1: List is still tight, item has no blanks around it, single block
+        EverTight andalso not HasBlankBefore andalso not HasBlankAfter ->
+            true;
+        % Case 2: Last item exception - list is loose but last item has no blank before, single block
+        not EverTight andalso IsLastItem andalso not HasBlankBefore ->
+            true;
+        % Case 3: Everything else is loose
+        true ->
+            false
     end,
 
-    % Once loose, stay loose (this is the key fix!)
-    FinalTight = Tight andalso NextTight,
+    Item = #list_item{content = ItemBlocks, tight = ItemTight},
 
-    collect_list_items(Type, Rest, Refs, [Item | Acc], FinalTight);
+    % Update EverTight: becomes false if this item had any blanks around it
+    NewEverTight = EverTight andalso not HasBlankBefore andalso not HasBlankAfter,
 
-collect_list_items(_Type, List, _Refs, Acc, Tight) ->
-    {List, Acc, Tight}.
+    collect_list_items(Type, Rest, Refs, [Item | Acc], NewEverTight, HasBlankAfter);
+
+collect_list_items(_Type, List, _Refs, Acc, EverTight, _HasBlankBefore) ->
+    {List, Acc, EverTight}.
+
+%% @doc Check if there's another list item of the same type in the remaining tokens
+has_next_item(_Type, []) ->
+    false;
+has_next_item(Type, [{{Type, _}, _} | _]) ->
+    true;  % Immediate next item
+has_next_item(Type, [{linefeed, _} | T]) ->
+    has_next_item(Type, T);  % Skip blanks
+has_next_item(Type, [{blank, _} | T]) ->
+    has_next_item(Type, T);  % Skip blanks
+has_next_item(_Type, _) ->
+    false.  % Hit something else, no more items
+
+%% @doc Skip blanks and check if there's another list item of the same type
+%% Returns {FoundBlank, HasNextItem}
+skip_blanks([], _Type) ->
+    {false, false};  % End of list
+skip_blanks([{{ItemType, _}, _} | _], Type) when ItemType =:= Type ->
+    {false, false};  % Immediately next is same list type (no blank between)
+skip_blanks([{linefeed, _} | Rest], Type) ->
+    case skip_blanks_after_one(Rest, Type) of
+        true -> {true, true};   % Found list item after blank(s)
+        false -> {true, false}  % Blank(s) but no more list items
+    end;
+skip_blanks([{blank, _} | Rest], Type) ->
+    case skip_blanks_after_one(Rest, Type) of
+        true -> {true, true};
+        false -> {true, false}
+    end;
+skip_blanks(_, _) ->
+    {false, false}.  % Different type or end
+
+%% Helper: after seeing at least one blank, check if there's a matching list item
+skip_blanks_after_one([], _Type) ->
+    false;
+skip_blanks_after_one([{{ItemType, _}, _} | _], Type) when ItemType =:= Type ->
+    true;  % Found matching type
+skip_blanks_after_one([{linefeed, _} | Rest], Type) ->
+    skip_blanks_after_one(Rest, Type);
+skip_blanks_after_one([{blank, _} | Rest], Type) ->
+    skip_blanks_after_one(Rest, Type);
+skip_blanks_after_one(_, _) ->
+    false.
 
 %% @doc Parse the content of a single list item
 parse_list_item_content(P, AdditionalContent, Refs) ->
@@ -655,8 +726,17 @@ parse_emphasis_and_code([$*, $*, $* | T], Acc) ->
             Strong = #strong{content = [Em], delimiter = $*},
             parse_emphasis_and_code(Rest, [Strong | Acc]);
         nomatch ->
-            TextNode = #text{content = "***"},
-            parse_emphasis_and_code(T, [TextNode | Acc])
+            % Fall back to trying ** for strong emphasis
+            case collect_until(T, [$*, $*]) of
+                {Rest2, Content2} ->
+                    Strong = #strong{content = [#text{content = Content2}], delimiter = $*},
+                    parse_emphasis_and_code(Rest2, [Strong | Acc]);
+                nomatch ->
+                    % Special case: *** with no closing becomes <em>*</em> + remaining text
+                    % The first ** is emphasis delimiter, third * is the content
+                    Em = #emphasis{content = [#text{content = "*"}], delimiter = $*},
+                    parse_emphasis_and_code(T, [Em | Acc])
+            end
     end;
 
 %% Escaped strong
@@ -704,8 +784,17 @@ parse_emphasis_and_code([$_, $_, $_ | T], Acc) ->
             Strong = #strong{content = [Em], delimiter = $_},
             parse_emphasis_and_code(Rest, [Strong | Acc]);
         nomatch ->
-            TextNode = #text{content = "___"},
-            parse_emphasis_and_code(T, [TextNode | Acc])
+            % Fall back to trying __ for strong emphasis
+            case collect_until(T, [$_, $_]) of
+                {Rest2, Content2} ->
+                    Strong = #strong{content = [#text{content = Content2}], delimiter = $_},
+                    parse_emphasis_and_code(Rest2, [Strong | Acc]);
+                nomatch ->
+                    % Special case: ___ with no closing becomes <em>_</em> + remaining text
+                    % The first __ is emphasis delimiter, third _ is the content
+                    Em = #emphasis{content = [#text{content = "_"}], delimiter = $_},
+                    parse_emphasis_and_code(T, [Em | Acc])
+            end
     end;
 
 parse_emphasis_and_code([$\\, $_, $_ | T], Acc) ->
