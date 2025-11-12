@@ -9,8 +9,6 @@ unit_test_() ->
      ?_assertEqual("<p>=&lt;</p>", erlmd:conv("=<")),
      ?_assertEqual("<p>&lt;=</p>", erlmd:conv("<=")),
      ?_assertEqual("<p>&lt;></p>", erlmd:conv("<>")),
-     % ?_assertEqual("<p><flame on>\nblah\n</flame off>\n<bingo>\n<bingo master></p>", erlmd:conv("<flame on>\nblah\n</flame off>\n<bingo>\n<bingo master>")),
-     % ?_assertEqual("<p><flame on>\n</flame on></p>", erlmd:conv("<flame on>\n</flame on>")),
      ?_assertEqual("<p><flame on></p>", erlmd:conv("<flame on>")),
      ?_assertEqual("<table>\n<img src=\"http://example.com\">\n</table>", erlmd:conv("<table>\n<img src=\"http://example.com\">\n</table>")),
      % ?_assertEqual("<table>\n<tr>\n<td>\n***FAQ*** - *WTF?* Postal Chess Records is a mash-up between Postal Chess and Chess Records where two Record Selectors slug it out over the interwebs in a sonic-soundclash, duh!\n</td>\n<td>\n<img src=\"http://imgur.com/VmdEL.png\">\n</td>\n</tr>\n</table>", erlmd:conv("<table>\n<tr>\n<td>\n***FAQ*** - *WTF?* Postal Chess Records is a mash-up between Postal Chess and Chess Records where two Record Selectors slug it out over the interwebs in a sonic-soundclash, duh!\n</td>\n<td>\n<img src=\"http://imgur.com/VmdEL.png\">\n</td>\n</tr>\n</table>")),
