@@ -413,17 +413,17 @@ grab_list_item([{linefeed, _} | T], Refs, Acc, false) ->
     % Call grab_list_item2 to check for following content
     grab_list_item2(T, Refs, Acc, T, Acc, true);
 
-%% Linefeed when already in loose mode - include blank line
+%% Linefeed when already in loose mode - check for continuation
 grab_list_item([{linefeed, _} | T], Refs, Acc, true) ->
-    grab_list_item(T, Refs, [#blank_line{} | Acc], true);
+    grab_list_item2(T, Refs, Acc, T, Acc, true);
 
 %% Blank when in tight mode - might transition to loose
 grab_list_item([{blank, _} | T], Refs, Acc, false) ->
     grab_list_item2(T, Refs, Acc, T, Acc, true);
 
-%% Blank when already in loose mode - include blank line
+%% Blank when already in loose mode - check for continuation
 grab_list_item([{blank, _} | T], Refs, Acc, true) ->
-    grab_list_item(T, Refs, [#blank_line{} | Acc], true);
+    grab_list_item2(T, Refs, Acc, T, Acc, true);
 
 %% Normal lines - add as paragraph
 grab_list_item([{normal, P} | T], Refs, Acc, Wrap) ->
@@ -435,16 +435,35 @@ grab_list_item([{normal, P} | T], Refs, Acc, Wrap) ->
 grab_list_item(List, _Refs, Acc, Wrap) ->
     {List, lists:reverse(Acc), Wrap}.
 
+%% @doc Check if a token list has actual content (not just whitespace/linefeeds)
+has_content([]) ->
+    false;
+has_content([{{ws, _}, _} | T]) ->
+    has_content(T);
+has_content([{{lf, _}, _} | T]) ->
+    has_content(T);
+has_content([_ | _]) ->
+    true.
+
 %% @doc Secondary grab for checking continuation after blank/linefeed
 %% Based on original grab2/6 from erlmd.erl lines 319-337
 grab_list_item2([{normal, P} | T], Refs, Acc, OrigList, OrigAcc, Wrap) ->
     % Check if normal line starts with whitespace (continuation)
     case P of
-        [{{ws, _}, _} | _] ->
-            % Starts with whitespace, it's a continuation
-            Content = build_inline(P, Refs),
-            Para = #paragraph{content = Content},
-            grab_list_item(T, Refs, [Para | Acc], Wrap);
+        [{{ws, _}, _} | RestTokens] ->
+            % Starts with whitespace, might be a continuation
+            % Check if there's actual content after the whitespace
+            case has_content(RestTokens) of
+                true ->
+                    % Real continuation with content
+                    % Add a single blank line separator, then the paragraph
+                    Content = build_inline(P, Refs),
+                    Para = #paragraph{content = Content},
+                    grab_list_item(T, Refs, [Para, #blank_line{} | Acc], Wrap);
+                false ->
+                    % Just whitespace, treat as another blank line
+                    grab_list_item2(T, Refs, Acc, OrigList, OrigAcc, true)
+            end;
         _ ->
             % Doesn't start with whitespace, stop grabbing
             % Return the original state (before the blanks)
@@ -452,14 +471,16 @@ grab_list_item2([{normal, P} | T], Refs, Acc, OrigList, OrigAcc, Wrap) ->
     end;
 
 grab_list_item2([{linefeed, _} | T], Refs, Acc, OrigList, OrigAcc, _Wrap) ->
-    grab_list_item2(T, Refs, [#blank_line{} | Acc], OrigList, OrigAcc, true);
+    % Just skip over blank lines, don't accumulate them
+    grab_list_item2(T, Refs, Acc, OrigList, OrigAcc, true);
 
 grab_list_item2([{blank, _} | T], Refs, Acc, OrigList, OrigAcc, _Wrap) ->
-    grab_list_item2(T, Refs, [#blank_line{} | Acc], OrigList, OrigAcc, true);
+    % Just skip over blank lines, don't accumulate them
+    grab_list_item2(T, Refs, Acc, OrigList, OrigAcc, true);
 
 grab_list_item2(_List, _Refs, _Acc, OrigList, OrigAcc, _Wrap) ->
-    % Stopped without finding continuation, return original state
-    {OrigList, OrigAcc, true}.
+    % Stopped without finding continuation, return original state (stay tight)
+    {OrigList, OrigAcc, false}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
