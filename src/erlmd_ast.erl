@@ -874,6 +874,9 @@ collect_regular_text([H | T], Acc) when H =:= $*; H =:= $_; H =:= $`;
         [] -> {[H | T], ""};  % No regular text collected, return empty string
         _ -> {[H | T], lists:reverse(Acc)}
     end;
+collect_regular_text([?TAB | T], Acc) ->
+    % Expand tabs to 4 spaces in regular text
+    collect_regular_text(T, lists:reverse("    ") ++ Acc);
 collect_regular_text([H | T], Acc) ->
     collect_regular_text(T, [H | Acc]).
 

@@ -188,6 +188,8 @@ unit_test_() ->
      ?_assertEqual("<p>xyz\nab:c\na</p>", erlmd:conv("xyz\r\nab:c\na")),
      ?_assertEqual("<p>xyz\nab:c\na</p>", erlmd:conv("xyz\nab:c\na")),
      ?_assertEqual("<p>xyz    ab:c\na</p>", erlmd:conv("xyz\tab:c\na")),
+     % Tabs in code spans should be preserved as literal tabs (not expanded)
+     ?_assertEqual("<p>Text <code>code\ttab</code> here</p>", erlmd:conv("Text `code\ttab` here")),
      ?_assertEqual("<p>xyz ab:c\na</p>", erlmd:conv("xyz ab:c\na")),
      ?_assertEqual("<p>xyz(ab:c\na</p>", erlmd:conv("xyz(ab:c\na")),
      ?_assertEqual("<p>xyz]ab:c\na</p>", erlmd:conv("xyz]ab:c\na")),
