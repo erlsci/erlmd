@@ -2,7 +2,7 @@
 
 ## Version 1.2.0 (2025) - Major Architecture Update
 
-This release represents a major refactoring of the erlmarkdown library, now maintained as **erlsci/erlmd**.
+This release represents a major refactoring of **erlsci/erlmd**, a fork of the erlmarkdown library
 
 ### Breaking Changes
 
@@ -20,9 +20,10 @@ This release represents a major refactoring of the erlmarkdown library, now main
 - **Type definitions**: `include/types.hrl` - Complete AST type specifications
 
 #### New API Functions
-- `erlmd:conv_ast/1` - Convert Markdown to AST for custom processing
-- `erlmd:conv_original/1` - Access original implementation (preserved for comparison)
-- `erlmd:conv/1` - Now uses AST pipeline by default (backward compatible output)
+- `erlmd:conv_ast/1` - Convert Markdown string to AST (returns `#document{}` record)
+- `erlmd:conv_html/1` - Convert Markdown string or AST to HTML
+- `erlmd:conv/2` - High-level conversion with options: `#{format => html | ast}`
+- `erlmd:conv/1` - Convert to HTML using default options (backward compatible)
 
 ### Improvements
 
@@ -70,6 +71,19 @@ HTML = markdown:conv_utf8(Utf8Text).
 
 % New
 HTML = erlmd:conv_utf8(Utf8Text).
+```
+
+**Step 4**: Using the new AST API:
+```erlang
+% Get AST
+AST = erlmd:conv_ast("# Hello").
+
+% Convert AST to HTML
+HTML = erlmd:ast_to_html(AST).
+
+% Or use conv/2 with options
+AST = erlmd:conv("# Hello", #{format => ast}).
+HTML = erlmd:conv("# Hello", #{format => html}).  % default
 ```
 
 ### Documentation
