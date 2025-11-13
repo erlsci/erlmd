@@ -6,7 +6,7 @@
     {"GitHub", "https://github.com/erlsci/erlmd"},
     {"Hex", "https://hex.pm/packages/erlmd"}
   ]},
-  {licenses, ["BSD-2-Clause"]},
+  {licenses, ["Apache-2.0 "]},
   {exclude_paths, [
     "priv"
   ]}
