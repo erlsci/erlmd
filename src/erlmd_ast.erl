@@ -398,36 +398,6 @@ has_next_item(Type, [{blank, _} | T]) ->
 has_next_item(_Type, _) ->
     false.  % Hit something else, no more items
 
-%% @doc Skip blanks and check if there's another list item of the same type
-%% Returns {FoundBlank, HasNextItem}
-skip_blanks([], _Type) ->
-    {false, false};  % End of list
-skip_blanks([{{ItemType, _}, _} | _], Type) when ItemType =:= Type ->
-    {false, false};  % Immediately next is same list type (no blank between)
-skip_blanks([{linefeed, _} | Rest], Type) ->
-    case skip_blanks_after_one(Rest, Type) of
-        true -> {true, true};   % Found list item after blank(s)
-        false -> {true, false}  % Blank(s) but no more list items
-    end;
-skip_blanks([{blank, _} | Rest], Type) ->
-    case skip_blanks_after_one(Rest, Type) of
-        true -> {true, true};
-        false -> {true, false}
-    end;
-skip_blanks(_, _) ->
-    {false, false}.  % Different type or end
-
-%% Helper: after seeing at least one blank, check if there's a matching list item
-skip_blanks_after_one([], _Type) ->
-    false;
-skip_blanks_after_one([{{ItemType, _}, _} | _], Type) when ItemType =:= Type ->
-    true;  % Found matching type
-skip_blanks_after_one([{linefeed, _} | Rest], Type) ->
-    skip_blanks_after_one(Rest, Type);
-skip_blanks_after_one([{blank, _} | Rest], Type) ->
-    skip_blanks_after_one(Rest, Type);
-skip_blanks_after_one(_, _) ->
-    false.
 
 %% @doc Parse the content of a single list item
 parse_list_item_content(P, AdditionalContent, Refs) ->
@@ -1187,17 +1157,6 @@ make_plain_str([{_, Str} | T], Acc) when is_list(Str) ->
 make_plain_str([{_, _} | T], Acc) ->
     make_plain_str(T, Acc).
 
-parse_tag(Tag, _Refs) ->
-    % Convert tag tokens to HTML block (unused now - tags wrapped in paragraphs)
-    Content = case Tag of
-        [_H | _] -> make_plain_str(Tag);
-        _ -> ""
-    end,
-    #html_block{
-        tag = "unknown",
-        content = Content,
-        type = self_closing
-    }.
 
 %% @doc Convert a string back to tokens for re-parsing (for nested inline content)
 %% This is needed for link text that contains images like [![alt](img)](url)
