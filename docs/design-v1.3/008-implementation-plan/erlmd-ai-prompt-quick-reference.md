@@ -10,9 +10,31 @@ For each phase/task, use this format:
 
 1. **Copy the relevant template below**
 2. **Fill in specific details** from the main implementation plan
-3. **Add context** from the Rust API docs (006-erlmd-library-rewrite.md)
+3. **Add context** from the Rust API docs (007-erlmd-library-rewrite.md)
 4. **Reference patterns** from the Erlang patterns doc (002-rewrite-research...)
 5. **Submit to Claude** in a focused conversation
+
+Files to upload to Claude for planning:
+
+* docs/design-v1.3/002-rewrite-research-erlang-markdown-implementation-patterns.md
+* docs/design-v1.3/005-rust-src-files.txt
+* docs/design-v1.3/006-rust-api-metadata.md
+* docs/design-v1.3/007-erlmd-library-rewrite.md
+* docs/design-v1.3/008-implementation-plan/erlmd-implementation-plan.md
+* docs/design-v1.3/008-implementation-plan/erlmd-module-dependencies.md
+* docs/design-v1.3/008-implementation-plan/erlmd-ai-prompt-quick-reference.md
+
+To Claude:
+
+I need you to review the attached files, paying special attention to `docs/design-v1.3/002-rewrite-research-erlang-markdown-implementation-patterns.md`, `docs/design-v1.3/007-erlmd-library-rewrite.md`, and `docs/design-v1.3/008-implementation-plan/erlmd-implementation-plan.md`. 
+
+We are now working on Phase NNN. I need you to create an .md artefact for easy download. 
+
+In it, you will wite highly detailed implementation instructions for Claude Code using the template defined in `docs/design-v1.3/008-implementation-plan/erlmd-ai-prompt-quick-reference.md`. 
+
+Knowing what we're going to be working on, reference `docs/design-v1.3/005-rust-src-files.txt` and `docs/design-v1.3/006-rust-api-metadata.md` to determine which Rust source files you need me to provide. 
+
+When you have all the files you need, use the template mentioned above to create the implementation plan .md artefact.
 
 ---
 
@@ -124,7 +146,7 @@ For each phase/task, use this format:
 
    {deps, []}.
 
-   {plugins, [rebar3_proper]}.
+   {project_plugins, [rebar3_proper, rebar3_hex]}.
 
    {profiles, [
        {test, [
@@ -216,15 +238,15 @@ For each phase/task, use this format:
 - **Phase**: 1 (Foundation Types)
 - **Modules**:
   - `include/types.hrl`
+  - `include/const.hrl`
   - `src/erlmd_util_char.erl`
-  - `src/erlmd_util_const.erl`
 
 ## Reference
 - **Architecture Doc**: Section 2 (Core Data Structures)
 - **Rust Code**: `markdown-rs/src/event.rs`, `src/util/char.rs`
 - **Erlang Patterns**: Section "Binary Pattern Matching"
 
-## Part 1: Core Records (erlmd_types.hrl)
+## Part 1: Core Records (types.hrl)
 
 Define these records:
 
@@ -331,26 +353,13 @@ is_unicode_punctuation(<<C/utf8>>) ->
     is_ascii_punctuation(C).
 ```
 
-## Part 3: Constants (erlmd_util_const.erl)
+## Part 3: Constants (include/const.hrl)
 
 ```erlang
--module(erlmd_util_constant).
--export([
-    tab_size/0,
-    code_indent_size/0,
-    list_item_prefix_size_max/0,
-    heading_atx_opening_fence_size_max/0
-]).
-
 -define(TAB_SIZE, 4).
 -define(CODE_INDENT_SIZE, 4).
 -define(LIST_ITEM_PREFIX_SIZE_MAX, 4).
 -define(HEADING_ATX_OPENING_FENCE_SIZE_MAX, 6).
-
-tab_size() -> ?TAB_SIZE.
-code_indent_size() -> ?CODE_INDENT_SIZE.
-list_item_prefix_size_max() -> ?LIST_ITEM_PREFIX_SIZE_MAX.
-heading_atx_opening_fence_size_max() -> ?HEADING_ATX_OPENING_FENCE_SIZE_MAX.
 ```
 
 ## Test Requirements
