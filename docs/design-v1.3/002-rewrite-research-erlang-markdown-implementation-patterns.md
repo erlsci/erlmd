@@ -815,45 +815,47 @@ close_tag(_) -> <<>>.
 ### Recommended Directory Structure
 
 ```
-markdown/
+erlmd/
 ├── src/
-│   ├── markdown.erl                 % Public API
-│   ├── markdown_parser.erl          % Main parser orchestration
-│   ├── markdown_tokenizer.erl       % Core state machine
-│   ├── markdown_ast.erl             % AST utilities
-│   ├── markdown_events.erl          % Event generation/handling
+│   ├── erlmd.app.src
+│   ├── erlmd.erl                 % Public API
+│   ├── erlmd_parser.erl          % Main parser orchestration
+│   ├── erlmd_tokenizer.erl       % Core state machine
+│   ├── erlmd_ast.erl             % AST utilities
+│   ├── erlmd_event.erl           % Event generation/handling
 │   │
-│   ├── constructs/                  % Individual construct parsers
-│   │   ├── markdown_construct_heading.erl
-│   │   ├── markdown_construct_list.erl
-│   │   ├── markdown_construct_emphasis.erl
-│   │   ├── markdown_construct_code_block.erl
-│   │   └── ...
+│   │   % Individual construct parsers
+│   ├── erlmd_cnstr_heading.erl
+│   ├── erlmd_cnstr_list.erl
+│   ├── erlmd_cnstr_emphasis.erl
+│   ├── erlmd_cnstr_code_block.erl
+│   ├── ...
 │   │
-│   ├── variants/                    % Variant-specific modules
-│   │   ├── markdown_commonmark.erl
-│   │   ├── markdown_gfm.erl
-│   │   └── markdown_pandoc.erl
+│   │   % Variant-specific modules
+│   ├── erlmd_vnt_commonmark.erl
+│   ├── erlmd_vnt_gfm.erl
+│   ├── erlmd_vnt_pandoc.erl
 │   │
-│   ├── extensions/                  % GFM/Pandoc extensions
-│   │   ├── markdown_ext_tables.erl
-│   │   ├── markdown_ext_strikethrough.erl
-│   │   ├── markdown_ext_footnotes.erl
-│   │   └── ...
+│   │   % GFM/Pandoc extensions
+│   ├── erlmd_ext_tables.erl
+│   ├── erlmd_ext_strikethrough.erl
+│   ├── erlmd_ext_footnotes.erl
+│   ├── ...
 │   │
-│   └── renderers/                   % Output formats
-│       ├── markdown_html.erl
-│       ├── markdown_text.erl
-│       └── markdown_ast_transform.erl
+│   │   % Output formats
+│   ├── erlmd_out_html.erl
+│   ├── erlmd_out_text.erl
+│   ├── erlmd_out_manpage.erl
+│   └── erlmd_out_ast.erl
 │
 ├── test/
-│   ├── markdown_SUITE.erl           % Common Test suite
-│   ├── spec_tests/                  % CommonMark spec tests
-│   ├── prop_markdown.erl            % PropEr properties
-│   └── fixtures/                    % Test documents
+│   ├── erlmd_SUITE.erl           % Common Test suite
+│   ├── spec_tests/               % CommonMark spec tests
+│   ├── prop_markdown.erl         % PropEr properties
+│   └── fixtures/                 % Test documents
 │
 ├── priv/
-│   └── spec_tests.json              % Parsed spec tests
+│   └── spec_tests.json           % Parsed spec tests
 │
 └── rebar.config
 ```
@@ -861,7 +863,7 @@ markdown/
 ### Public API Module
 
 ```erlang
--module(markdown).
+-module(erlmd).
 -export([
     parse/1, parse/2,
     to_html/1, to_html/2,
@@ -881,7 +883,7 @@ parse(Markdown) ->
 
 -spec parse(binary(), options()) -> {ok, [event()]} | {error, term()}.
 parse(Markdown, Opts) ->
-    markdown_parser:parse(Markdown, normalize_options(Opts)).
+    erlmd_parser:parse(Markdown, normalize_options(Opts)).
 
 %% Parse and convert to HTML
 -spec to_html(binary()) -> {ok, binary()} | {error, term()}.
@@ -892,7 +894,7 @@ to_html(Markdown) ->
 to_html(Markdown, Opts) ->
     case parse(Markdown, Opts) of
         {ok, Events} ->
-            Html = markdown_html:render(Events),
+            Html = erlmd_out_html:render(Events),
             {ok, Html};
         {error, _} = Error ->
             Error
@@ -907,7 +909,7 @@ to_ast(Markdown) ->
 to_ast(Markdown, Opts) ->
     case parse(Markdown, Opts) of
         {ok, Events} ->
-            Ast = markdown_ast:from_events(Events),
+            Ast = erlmd_ast:from_events(Events),
             {ok, Ast};
         {error, _} = Error ->
             Error
@@ -931,10 +933,10 @@ normalize_option({features, F}, Acc) -> Acc#{features => F}.
 Each construct is a separate module with a standard interface:
 
 ```erlang
--module(markdown_construct_heading).
+-module(erlmd_cnstr_heading).
 -export([attempt/2]).
 
--include("markdown_internal.hrl").
+-include("erlmd_internal.hrl").
 
 %% Attempt to parse an ATX heading at current position
 -spec attempt(binary(), state()) -> {ok, binary(), state()} | {error, nomatch}.
@@ -970,7 +972,7 @@ attempt_heading(_, _State, _Level) ->
 Define a behavior for Markdown variants:
 
 ```erlang
--module(markdown_variant).
+-module(erlmd_vnt).
 
 -callback name() -> atom().
 -callback constructs() -> #{atom() => module()}.
@@ -981,8 +983,8 @@ Define a behavior for Markdown variants:
 ### CommonMark Implementation
 
 ```erlang
--module(markdown_commonmark).
--behaviour(markdown_variant).
+-module(erlmd_vnt_commonmark).
+-behaviour(erlmd_vnt).
 
 -export([name/0, constructs/0, extensions/0, default_options/0]).
 
@@ -990,18 +992,18 @@ name() -> commonmark.
 
 constructs() ->
     #{
-        heading => markdown_construct_heading,
-        thematic_break => markdown_construct_thematic_break,
-        code_block => markdown_construct_code_block,
-        block_quote => markdown_construct_blockquote,
-        list => markdown_construct_list,
-        paragraph => markdown_construct_paragraph,
+        heading => erlmd_cnstr_heading,
+        thematic_break => erlmd_cnstr_thematic_break,
+        code_block => erlmd_cnstr_code_block,
+        block_quote => erlmd_cnstr_blockquote,
+        list => erlmd_cnstr_list,
+        paragraph => erlmd_cnstr_paragraph,
         
-        emphasis => markdown_construct_emphasis,
-        link => markdown_construct_link,
-        image => markdown_construct_image,
-        code_span => markdown_construct_code_span,
-        hard_break => markdown_construct_hard_break
+        emphasis => erlmd_cnstr_emphasis,
+        link => erlmd_cnstr_link,
+        image => erlmd_cnstr_image,
+        code_span => erlmd_cnstr_code_span,
+        hard_break => erlmd_cnstr_hard_break
     }.
 
 extensions() ->
@@ -1017,8 +1019,8 @@ default_options() ->
 ### GFM Implementation
 
 ```erlang
--module(markdown_gfm).
--behaviour(markdown_variant).
+-module(erlmd_vnt_gfm).
+-behaviour(erlmd_variant).
 
 -export([name/0, constructs/0, extensions/0, default_options/0]).
 
@@ -1026,21 +1028,21 @@ name() -> gfm.
 
 constructs() ->
     %% Start with CommonMark constructs
-    Base = markdown_commonmark:constructs(),
+    Base = erlmd_vnt_commonmark:constructs(),
     
     %% Add GFM extensions
     Base#{
-        table => markdown_ext_tables,
-        strikethrough => markdown_ext_strikethrough,
-        task_list => markdown_ext_task_lists,
-        autolink_extended => markdown_ext_autolink
+        table => erlmd_ext_tables,
+        strikethrough => erlmd_ext_strikethrough,
+        task_list => erlmd_ext_task_lists,
+        autolink_extended => erlmd_ext_autolink
     }.
 
 extensions() ->
     [tables, strikethrough, task_lists, autolinks].
 
 default_options() ->
-    Base = markdown_commonmark:default_options(),
+    Base = erlmd_vnt_commonmark:default_options(),
     Base#{
         tagfilter => true  %% GFM-specific option
     }.
@@ -1049,7 +1051,7 @@ default_options() ->
 ### Runtime Variant Selection
 
 ```erlang
--module(markdown_parser).
+-module(erlmd_parser).
 
 parse(Markdown, Options) ->
     Variant = maps:get(variant, Options, commonmark),
@@ -1060,9 +1062,9 @@ parse(Markdown, Options) ->
     
     parse_document(Markdown, State).
 
-variant_module(commonmark) -> markdown_commonmark;
-variant_module(gfm) -> markdown_gfm;
-variant_module(pandoc) -> markdown_pandoc.
+variant_module(commonmark) -> erlmd_vnt_commonmark;
+variant_module(gfm) -> erlmd_vnt_gfm;
+variant_module(pandoc) -> erlmd_vnt_pandoc.
 
 init_state(Binary, Constructs, Options) ->
     #state{
@@ -1080,7 +1082,7 @@ init_state(Binary, Constructs, Options) ->
 ### Common Test Suite Structure
 
 ```erlang
--module(markdown_SUITE).
+-module(erlmd_SUITE).
 -include_lib("common_test/include/ct.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
@@ -1122,7 +1124,7 @@ spec_test_cases() ->
 prop_never_crashes() ->
     ?FORALL(Input, binary(),
         begin
-            Result = markdown:parse(Input),
+            Result = erlmd:parse(Input),
             is_tuple(Result) andalso (element(1, Result) =:= ok orelse element(1, Result) =:= error)
         end).
 
@@ -1130,8 +1132,8 @@ prop_never_crashes() ->
 prop_roundtrip() ->
     ?FORALL(Ast, ast(),
         begin
-            Markdown = markdown:to_markdown(Ast),
-            {ok, Ast2} = markdown:to_ast(Markdown),
+            Markdown = erlmd:to_markdown(Ast),
+            {ok, Ast2} = erlmd:to_ast(Markdown),
             ast_equivalent(Ast, Ast2)
         end).
 
@@ -1172,7 +1174,7 @@ heading(Level, Children) ->
 {profiles, [
     {test, [
         {deps, [
-            {proper, "1.4.0"}
+            {proper, "~> 1.5"}
         ]},
         {erl_opts, [debug_info, export_all]}
     ]}

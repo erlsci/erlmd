@@ -26,9 +26,9 @@ Creating effective generators requires understanding Markdown's recursive struct
 The recursive document generator demonstrates the core pattern. Start with a simple base case returning minimal content, then build complexity using `?LAZY` to prevent infinite recursion. The frequency list weights different constructs by their importance—paragraphs appear most often since they're the most common Markdown element, while code blocks appear less frequently. Each recursive call reduces the size parameter, ensuring termination. This approach generates realistic documents with varied structure that thoroughly exercise the parser.
 
 ```erlang
--module(markdown_generators).
+-module(erlmd_generators).
 -include_lib("proper/include/proper.hrl").
--export([markdown_document/1, markdown_heading/0, markdown_list/0]).
+-export([md_document/1, md_heading/0, md_list/0]).
 
 %% Basic text generator with realistic character distribution
 simple_text() ->
@@ -42,9 +42,9 @@ simple_text() ->
     list_to_binary(Text)).
 
 %% Recursive document generator
-markdown_document(N) when N =< 1 ->
+md_document(N) when N =< 1 ->
     simple_paragraph();
-markdown_document(N) ->
+md_document(N) ->
     PerBranch = N div 2,
     frequency([
         {10, ?LAZY(paragraph())},
@@ -54,7 +54,7 @@ markdown_document(N) ->
     ]).
 
 %% Heading generator
-markdown_heading() ->
+md_heading() ->
     ?LET({Level, Text}, 
          {range(1, 6), simple_text()},
          begin
@@ -63,7 +63,7 @@ markdown_heading() ->
          end).
 
 %% List generator
-markdown_list() ->
+md_list() ->
     ?LET({Type, Items},
          {oneof([ordered, unordered]), non_empty(list(simple_text()))},
          format_list(Type, Items)).
@@ -380,18 +380,21 @@ A well-organized test suite separates concerns clearly. Unit tests verify indivi
 The recommended directory structure mirrors this organization. Place test suites in `test/`, with `_SUITE.erl` files for each major area. Each suite has a corresponding `_SUITE_data/` directory containing fixtures and golden files. Property tests live under `test/property_test/` with separate modules for generators and properties. Spec tests go in `test/spec_tests/` with the CommonMark JSON test file. This structure scales from small parsers to large projects with thousands of tests.
 
 ```
-parser_project/
+erlmd/
 ├── src/
-│   ├── lexer.erl
-│   ├── parser.erl
-│   ├── renderer.erl
-│   └── ast.erl
+│   ├── erlmd.app.src
+│   ├── erlmd.erl                 % Public API
+│   ├── erlmd_parser.erl          % Main parser orchestration
+│   ├── erlmd_tokenizer.erl       % Core state machine
+│   ├── erlmd_ast.erl             % AST utilities
+│   ├── erlmd_event.erl           % Event generation/handling
+│   └── ...
 ├── test/
-│   ├── lexer_SUITE.erl
-│   ├── parser_SUITE.erl
-│   ├── integration_SUITE.erl
-│   ├── spec_SUITE.erl
-│   ├── perf_SUITE.erl
+│   ├── erlmd_lexer_SUITE.erl
+│   ├── erlmd_parser_SUITE.erl
+│   ├── erlmd_integration_SUITE.erl
+│   ├── erlmd_spec_SUITE.erl
+│   ├── erlmd_perf_SUITE.erl
 │   ├── property_test/
 │   │   ├── parser_properties.erl
 │   │   └── generators.erl
@@ -409,7 +412,7 @@ parser_project/
 Group organization within suites enables fine-grained control. Use `{parallel}` groups for independent tests that can run concurrently, dramatically reducing test execution time. Use `{sequence}` groups for tests with dependencies. The `{shuffle}` option randomizes test order, catching hidden dependencies between tests. The `{repeat_until_any_fail, N}` option stress-tests flaky behavior by running tests repeatedly until failure.
 
 ```erlang
--module(parser_SUITE).
+-module(erlmd_parser_SUITE).
 -include_lib("common_test/include/ct.hrl").
 -export([all/0, groups/0, init_per_suite/1, end_per_suite/1]).
 -export([test_headings/1, test_lists/1, test_emphasis/1, test_code_blocks/1]).
@@ -1441,12 +1444,15 @@ Building a comprehensive Markdown parser test suite requires integrating all the
 Begin with a clean directory structure that separates concerns. Place source code in `src/`, tests in `test/`, documentation in `doc/`, and configuration at the root. Within `test/`, create subdirectories for each test type.
 
 ```
-markdown_parser/
+erlmd/
 ├── src/
-│   ├── lexer.erl
-│   ├── parser.erl
-│   ├── renderer.erl
-│   └── ast.erl
+│   ├── erlmd.app.src
+│   ├── erlmd.erl                 % Public API
+│   ├── erlmd_parser.erl          % Main parser orchestration
+│   ├── erlmd_tokenizer.erl       % Core state machine
+│   ├── erlmd_ast.erl             % AST utilities
+│   ├── erlmd_event.erl           % Event generation/handling
+│   └── ...
 ├── test/
 │   ├── unit/
 │   │   ├── lexer_SUITE.erl
