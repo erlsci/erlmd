@@ -1,5 +1,37 @@
 # Release Notes
 
+## Version 1.2.1 (2025) - Code Cleanup
+
+This is a maintenance release that removes unused legacy code while maintaining full backward compatibility.
+
+### Code Quality Improvements
+
+- **Removed 602 lines of dead code** - Cleaned up old parsing functions that were replaced by the AST-based architecture in v1.2.0
+- **Eliminated all compiler warnings** - Down from 47 warnings to 0
+- **No functional changes** - All 298 tests still passing
+
+### What Was Removed
+
+The following unused functions from the legacy (pre-AST) implementation were removed:
+
+**From `erlmd_ast.erl`:**
+- `skip_blanks/2`, `skip_blanks_after_one/2` - Unused list item detection helpers
+- `parse_tag/2` - Unused HTML block conversion function
+
+**From `erlmd.erl`:**
+- `parse/2`, `p1/4` - Old HTML rendering pipeline (replaced by `erlmd_html:render/1`)
+- Old list/blockquote parsing helpers
+- Legacy string processing and inline element functions
+- Old character escaping and emphasis interpolation code
+
+**Note:** The lexer and tokenization functions (`is_double_indent/1`, `make_list_str/1`, etc.) were preserved as they are still used by the new AST builder.
+
+### Upgrade Notes
+
+No changes required - this release is fully backward compatible with v1.2.0.
+
+---
+
 ## Version 1.2.0 (2025) - Major Architecture Update
 
 This release represents a major refactoring of **erlsci/erlmd**, a fork of the erlmarkdown library
