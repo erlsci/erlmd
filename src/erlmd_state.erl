@@ -30,9 +30,22 @@
 %% In Phase 2, we only implement stubs. Real constructs come in later phases.
 call(StateName, Tokenizer) ->
     case StateName of
-        %% Phase 2: Only return 'ok' stub
-        %% These will be implemented in later phases
+        %% Phase 2: Document start stub
         document_start -> stub(StateName, Tokenizer);
+
+        %% Phase 3: Data construct
+        data_start -> erlmd_construct_partial_data:start(Tokenizer);
+        data_at_break -> erlmd_construct_partial_data:at_break(Tokenizer);
+        data_inside -> erlmd_construct_partial_data:inside(Tokenizer);
+
+        %% Phase 3: Blank line construct
+        blank_line_start -> erlmd_construct_blank_line:start(Tokenizer);
+        blank_line_after -> erlmd_construct_blank_line:after_whitespace(Tokenizer);
+
+        %% Phase 3: Space or tab construct
+        space_or_tab_start -> erlmd_construct_partial_space_or_tab:start(Tokenizer);
+        space_or_tab_inside -> erlmd_construct_partial_space_or_tab:inside(Tokenizer);
+        space_or_tab_after -> erlmd_construct_partial_space_or_tab:after_space_or_tab(Tokenizer);
 
         %% More states will be added in future phases:
         %% flow_start -> erlmd_construct_flow:start(Tokenizer);
