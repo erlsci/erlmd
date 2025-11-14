@@ -34,20 +34,20 @@ call(StateName, Tokenizer) ->
         document_start -> stub(StateName, Tokenizer);
 
         %% Phase 3: Data construct
-        data_start -> erlmd_construct_partial_data:start(Tokenizer);
-        data_at_break -> erlmd_construct_partial_data:at_break(Tokenizer);
-        data_inside -> erlmd_construct_partial_data:inside(Tokenizer);
+        data_start -> erlmd_cnstr_prtl_data:start(Tokenizer);
+        data_at_break -> erlmd_cnstr_prtl_data:at_break(Tokenizer);
+        data_inside -> erlmd_cnstr_prtl_data:inside(Tokenizer);
 
         %% Phase 3: Blank line construct
-        blank_line_start -> erlmd_construct_blank_line:start(Tokenizer);
-        parse_whitespace -> erlmd_construct_blank_line:parse_whitespace(Tokenizer);
-        check_after_whitespace -> erlmd_construct_blank_line:check_after_whitespace(Tokenizer);
-        blank_line_after -> erlmd_construct_blank_line:after_whitespace(Tokenizer);
+        blank_line_start -> erlmd_cnstr_blank_line:start(Tokenizer);
+        parse_whitespace -> erlmd_cnstr_blank_line:parse_whitespace(Tokenizer);
+        check_after_whitespace -> erlmd_cnstr_blank_line:check_after_whitespace(Tokenizer);
+        blank_line_after -> erlmd_cnstr_blank_line:after_whitespace(Tokenizer);
 
         %% Phase 3: Space or tab construct
-        space_or_tab_start -> erlmd_construct_partial_space_or_tab:start(Tokenizer);
-        space_or_tab_inside -> erlmd_construct_partial_space_or_tab:inside(Tokenizer);
-        space_or_tab_after -> erlmd_construct_partial_space_or_tab:after_space_or_tab(Tokenizer);
+        space_or_tab_start -> erlmd_cnstr_prtl_space_or_tab:start(Tokenizer);
+        space_or_tab_inside -> erlmd_cnstr_prtl_space_or_tab:inside(Tokenizer);
+        space_or_tab_after -> erlmd_cnstr_prtl_space_or_tab:after_space_or_tab(Tokenizer);
 
         %% More states will be added in future phases:
         %% flow_start -> erlmd_construct_flow:start(Tokenizer);

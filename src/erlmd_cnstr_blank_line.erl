@@ -10,7 +10,7 @@
 %%% Reference: markdown-rs/src/construct/blank_line.rs
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(erlmd_construct_blank_line).
+-module(erlmd_cnstr_blank_line).
 
 -export([start/1, parse_whitespace/1, check_after_whitespace/1, after_whitespace/1]).
 

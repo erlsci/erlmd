@@ -50,7 +50,7 @@ parse_empty_input_test() ->
 
 parse_whitespace_test() ->
     T0 = test_helper:make_tokenizer(<<"   ">>),
-    {{retry, space_or_tab_start}, T1} = erlmd_construct_partial_space_or_tab:space_or_tab(T0),
+    {{retry, space_or_tab_start}, T1} = erlmd_cnstr_prtl_space_or_tab:space_or_tab(T0),
     {ok, T2} = test_helper:run_construct(space_or_tab_start, T1),
 
     %% Should have consumed the whitespace

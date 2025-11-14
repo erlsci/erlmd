@@ -2,7 +2,7 @@
 %%% @doc Unit tests for blank_line construct.
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(erlmd_construct_blank_line_test).
+-module(erlmd_cnstr_blank_line_test).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("../src/types.hrl").

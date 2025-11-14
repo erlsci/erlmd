@@ -2,7 +2,7 @@
 %%% @doc Unit tests for partial_data construct.
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(erlmd_construct_partial_data_test).
+-module(erlmd_cnstr_prtl_data_test).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("../src/types.hrl").

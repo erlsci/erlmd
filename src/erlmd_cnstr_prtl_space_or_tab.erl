@@ -11,7 +11,7 @@
 %%% Reference: markdown-rs/src/construct/partial_space_or_tab.rs
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(erlmd_construct_partial_space_or_tab).
+-module(erlmd_cnstr_prtl_space_or_tab).
 
 -export([
     space_or_tab/1,

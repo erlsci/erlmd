@@ -9,7 +9,7 @@
 %%% Reference: markdown-rs/src/construct/partial_data.rs
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(erlmd_construct_partial_data).
+-module(erlmd_cnstr_prtl_data).
 
 -export([start/1, at_break/1, inside/1]).
 
