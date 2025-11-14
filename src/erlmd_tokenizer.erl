@@ -64,6 +64,17 @@
 %% Exported for testing
 -export([prepare_byte/1, handle_attempt_result/2]).
 
+%% Helper functions for constructs
+-export([
+    get_events/1,
+    set_events/2,
+    get_state/2,
+    set_state/3,
+    clear_state/2,
+    get_markers/1,
+    set_markers/2
+]).
+
 %%%=============================================================================
 %%% API Functions - Creation
 %%%=============================================================================
@@ -345,6 +356,47 @@ finalize(T) ->
         {_, Attempts} when Attempts =/= [] ->
             {error, {pending_attempts, length(Attempts)}}
     end.
+
+%%%=============================================================================
+%%% API Functions - Helper Functions for Constructs
+%%%=============================================================================
+
+-spec get_events(tokenizer()) -> [event()].
+%% @doc Get the current events list (in reversed order).
+get_events(#tokenizer{events = Events}) ->
+    Events.
+
+-spec set_events(tokenizer(), [event()]) -> tokenizer().
+%% @doc Set the events list (should be in reversed order).
+set_events(T, Events) ->
+    T#tokenizer{events = Events}.
+
+-spec get_state(tokenizer(), atom()) -> term().
+%% @doc Get a value from the parse_state map.
+get_state(#tokenizer{parse_state = State}, Key) ->
+    maps:get(Key, State, undefined).
+
+-spec set_state(tokenizer(), atom(), term()) -> tokenizer().
+%% @doc Set a value in the parse_state map.
+set_state(#tokenizer{parse_state = State} = T, Key, Value) ->
+    T#tokenizer{parse_state = maps:put(Key, Value, State)}.
+
+-spec clear_state(tokenizer(), atom()) -> tokenizer().
+%% @doc Remove a key from the parse_state map.
+clear_state(#tokenizer{parse_state = State} = T, Key) ->
+    T#tokenizer{parse_state = maps:remove(Key, State)}.
+
+-spec get_markers(tokenizer()) -> [byte()].
+%% @doc Get the list of marker bytes from parse_state.
+%%
+%% Markers are special characters that interrupt data parsing.
+get_markers(#tokenizer{parse_state = State}) ->
+    maps:get(markers, State, []).
+
+-spec set_markers(tokenizer(), [byte()]) -> tokenizer().
+%% @doc Set the list of marker bytes in parse_state.
+set_markers(#tokenizer{parse_state = State} = T, Markers) ->
+    T#tokenizer{parse_state = maps:put(markers, Markers, State)}.
 
 %%%=============================================================================
 %%% Internal Functions - Consumption Helpers
