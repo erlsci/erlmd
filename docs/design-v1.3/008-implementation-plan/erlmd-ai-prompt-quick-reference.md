@@ -28,11 +28,11 @@ To Claude:
 
 I need you to review the attached files, paying special attention to `docs/design-v1.3/002-rewrite-research-erlang-markdown-implementation-patterns.md`, `docs/design-v1.3/007-erlmd-library-rewrite.md`, and `docs/design-v1.3/008-implementation-plan/erlmd-implementation-plan.md`. 
 
-We are now working on Phase NNN. I need you to create an .md artefact for easy download. 
+We are now working on Phase NNN of the implementation plan. I need you to create an .md artefact for easy download. 
 
-In it, you will wite highly detailed implementation instructions for Claude Code using the template defined in `docs/design-v1.3/008-implementation-plan/erlmd-ai-prompt-quick-reference.md`. 
+In it, you will write highly detailed implementation instructions for Claude Code using the template defined in `docs/design-v1.3/008-implementation-plan/erlmd-ai-prompt-quick-reference.md`. 
 
-Knowing what we're going to be working on, reference `docs/design-v1.3/005-rust-src-files.txt` and `docs/design-v1.3/006-rust-api-metadata.md` to determine which Rust source files you need me to provide. 
+Once you figure out exactly what we're going to be working on, reference `docs/design-v1.3/005-rust-src-files.txt` and `docs/design-v1.3/006-rust-api-metadata.md` to determine which Rust source files you need me to provide, then ask me for those and I will attach them.
 
 When you have all the files you need, use the template mentioned above to create the implementation plan .md artefact.
 
