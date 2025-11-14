@@ -12,7 +12,7 @@
 %%%-----------------------------------------------------------------------------
 -module(erlmd_construct_blank_line).
 
--export([start/1, after_whitespace/1]).
+-export([start/1, parse_whitespace/1, check_after_whitespace/1, after_whitespace/1]).
 
 -include("types.hrl").
 
@@ -28,18 +28,47 @@
 start(T) ->
     case erlmd_tokenizer:current(T) of
         Byte when Byte =:= $\s; Byte =:= $\t ->
-            %% Has whitespace - try to consume it
-            %% Use attempt: if whitespace parse succeeds, check what's after
-            T1 = erlmd_tokenizer:attempt(T,
-                {next, after_whitespace},  % On success
-                nok),                       % On failure
-            %% Delegate to space_or_tab construct
-            {{retry, space_or_tab_start}, T1};
+            %% Has whitespace - consume it inline and check what follows
+            T1 = erlmd_tokenizer:consume(T),
+            {{next, check_after_whitespace}, T1};
         eof ->
             %% EOF - valid blank line
             {ok, T};
         $\n ->
             %% Just a newline - valid blank line
+            {ok, T};
+        _Other ->
+            %% Something else - not a blank line
+            {nok, T}
+    end.
+
+-spec parse_whitespace(erlmd_tokenizer:tokenizer()) ->
+    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+%% @doc Continue parsing whitespace.
+parse_whitespace(T) ->
+    case erlmd_tokenizer:current(T) of
+        Byte when Byte =:= $\s; Byte =:= $\t ->
+            %% More whitespace - consume and continue
+            T1 = erlmd_tokenizer:consume(T),
+            {{next, check_after_whitespace}, T1};
+        _Other ->
+            %% No more whitespace - check what's after
+            {{retry, check_after_whitespace}, T}
+    end.
+
+-spec check_after_whitespace(erlmd_tokenizer:tokenizer()) ->
+    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+%% @doc After parsing whitespace, check if we have a blank line.
+check_after_whitespace(T) ->
+    case erlmd_tokenizer:current(T) of
+        Byte when Byte =:= $\s; Byte =:= $\t ->
+            %% More whitespace - continue parsing
+            {{retry, parse_whitespace}, T};
+        eof ->
+            %% EOF after whitespace - blank line confirmed
+            {ok, T};
+        $\n ->
+            %% Newline after whitespace - blank line confirmed
             {ok, T};
         _Other ->
             %% Something else - not a blank line

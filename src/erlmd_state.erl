@@ -40,6 +40,8 @@ call(StateName, Tokenizer) ->
 
         %% Phase 3: Blank line construct
         blank_line_start -> erlmd_construct_blank_line:start(Tokenizer);
+        parse_whitespace -> erlmd_construct_blank_line:parse_whitespace(Tokenizer);
+        check_after_whitespace -> erlmd_construct_blank_line:check_after_whitespace(Tokenizer);
         blank_line_after -> erlmd_construct_blank_line:after_whitespace(Tokenizer);
 
         %% Phase 3: Space or tab construct

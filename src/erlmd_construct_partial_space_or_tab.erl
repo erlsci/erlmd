@@ -44,7 +44,7 @@ space_or_tab_min_max(T, Min, Max) ->
     T1 = erlmd_tokenizer:set_state(T, space_or_tab_min, Min),
     T2 = erlmd_tokenizer:set_state(T1, space_or_tab_max, Max),
     T3 = erlmd_tokenizer:set_state(T2, space_or_tab_size, 0),
-    {{retry, start}, T3}.
+    {{retry, space_or_tab_start}, T3}.
 
 -spec start(erlmd_tokenizer:tokenizer()) ->
     {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
@@ -61,12 +61,14 @@ start(T) ->
 
     case erlmd_tokenizer:current(T) of
         Byte when (Byte =:= $\s orelse Byte =:= $\t) andalso not AtMax ->
-            %% Valid whitespace and we haven't hit max - enter and consume
+            %% Valid whitespace and we haven't hit max - enter, consume, and go to inside
             T1 = erlmd_tokenizer:enter(T, space_or_tab),
-            {{retry, inside}, T1};
+            T2 = erlmd_tokenizer:consume(T1),
+            T3 = erlmd_tokenizer:set_state(T2, space_or_tab_size, 1),
+            {{next, space_or_tab_inside}, T3};
         _ ->
             %% No whitespace or hit max - check if we met minimum
-            {{retry, after_space_or_tab}, T}
+            {{retry, space_or_tab_after}, T}
     end.
 
 -spec inside(erlmd_tokenizer:tokenizer()) ->
@@ -87,11 +89,11 @@ inside(T) ->
             %% Valid whitespace and haven't hit max - consume
             T1 = erlmd_tokenizer:consume(T),
             T2 = erlmd_tokenizer:set_state(T1, space_or_tab_size, Size + 1),
-            {{next, inside}, T2};
+            {{next, space_or_tab_inside}, T2};
         _ ->
             %% Done consuming - exit and check minimum
             T1 = erlmd_tokenizer:exit(T, space_or_tab),
-            {{retry, after_space_or_tab}, T1}
+            {{retry, space_or_tab_after}, T1}
     end.
 
 -spec after_space_or_tab(erlmd_tokenizer:tokenizer()) ->

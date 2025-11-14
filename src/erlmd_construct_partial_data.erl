@@ -43,11 +43,11 @@ at_break(T) ->
                             T1 = erlmd_tokenizer:enter(T, line_ending),
                             T2 = erlmd_tokenizer:consume(T1),
                             T3 = erlmd_tokenizer:exit(T2, line_ending),
-                            {{next, at_break}, T3};
+                            {{next, data_at_break}, T3};
                         true ->
                             %% Regular data - enter and parse
                             T1 = erlmd_tokenizer:enter(T, data),
-                            {{retry, inside}, T1}
+                            {{retry, data_inside}, T1}
                     end;
                 true ->
                     %% Marker found - we're done
@@ -71,16 +71,16 @@ inside(T) ->
                 Byte =/= $\n andalso not IsMarker ->
                     %% Regular byte - consume and continue
                     T1 = erlmd_tokenizer:consume(T),
-                    {{next, inside}, T1};
+                    {{next, data_inside}, T1};
                 true ->
                     %% Hit a line ending or marker - exit data
                     T1 = erlmd_tokenizer:exit(T, data),
-                    {{retry, at_break}, T1}
+                    {{retry, data_at_break}, T1}
             end;
         eof ->
             %% End of input - exit data
             T1 = erlmd_tokenizer:exit(T, data),
-            {{retry, at_break}, T1}
+            {{retry, data_at_break}, T1}
     end.
 
 %%%=============================================================================

@@ -14,52 +14,58 @@
 
 empty_line_test() ->
     T = test_helper:make_tokenizer(<<"\n">>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {ok, T2} = erlmd_construct_blank_line:start(T1),
-    ?assertEqual($\n, erlmd_tokenizer:current(T2)).
+    {ok, T1} = test_helper:run_construct(blank_line_start, T),
+
+    %% Should succeed and be at the newline
+    ?assertEqual($\n, erlmd_tokenizer:current(T1)).
 
 just_newline_test() ->
     T = test_helper:make_tokenizer(<<"\n">>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {ok, _T2} = erlmd_construct_blank_line:start(T1).
+    {ok, T1} = test_helper:run_construct(blank_line_start, T),
+
+    %% Should succeed
+    ?assertEqual($\n, erlmd_tokenizer:current(T1)).
 
 spaces_line_test() ->
     T = test_helper:make_tokenizer(<<"   \n">>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {ok, T2} = erlmd_construct_blank_line:start(T1),
-    %% Should be at newline after consuming spaces
-    ?assertEqual($\n, erlmd_tokenizer:current(T2)).
+    {ok, T1} = test_helper:run_construct(blank_line_start, T),
+
+    %% Should succeed and be at newline
+    %% (blank_line doesn't emit events, it just validates structure)
+    ?assertEqual($\n, erlmd_tokenizer:current(T1)).
 
 tabs_line_test() ->
     T = test_helper:make_tokenizer(<<"\t\t\n">>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {ok, T2} = erlmd_construct_blank_line:start(T1),
-    ?assertEqual($\n, erlmd_tokenizer:current(T2)).
+    {ok, T1} = test_helper:run_construct(blank_line_start, T),
+
+    %% Should succeed and be at newline
+    ?assertEqual($\n, erlmd_tokenizer:current(T1)).
 
 mixed_whitespace_line_test() ->
-    T = test_helper:make_tokenizer(<<" \t \n">>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {ok, T2} = erlmd_construct_blank_line:start(T1),
-    ?assertEqual($\n, erlmd_tokenizer:current(T2)).
+    T = test_helper:make_tokenizer(<<" \t \t\n">>),
+    {ok, T1} = test_helper:run_construct(blank_line_start, T),
+
+    %% Should succeed
+    ?assertEqual($\n, erlmd_tokenizer:current(T1)).
 
 not_blank_with_text_test() ->
     T = test_helper:make_tokenizer(<<"  a\n">>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {nok, _T2} = erlmd_construct_blank_line:start(T1).
+    {nok, _T1} = test_helper:run_construct(blank_line_start, T).
 
 not_blank_no_spaces_test() ->
     T = test_helper:make_tokenizer(<<"abc\n">>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {nok, _T2} = erlmd_construct_blank_line:start(T1).
+    {nok, _T1} = test_helper:run_construct(blank_line_start, T).
 
 eof_after_whitespace_test() ->
     T = test_helper:make_tokenizer(<<"  ">>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {ok, T2} = erlmd_construct_blank_line:start(T1),
-    ?assertEqual(eof, erlmd_tokenizer:current(T2)).
+    {ok, T1} = test_helper:run_construct(blank_line_start, T),
+
+    %% Should succeed
+    ?assertEqual(eof, erlmd_tokenizer:current(T1)).
 
 eof_only_test() ->
     T = test_helper:make_tokenizer(<<>>),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    {ok, T2} = erlmd_construct_blank_line:start(T1),
-    ?assertEqual(eof, erlmd_tokenizer:current(T2)).
+    {ok, T1} = test_helper:run_construct(blank_line_start, T),
+
+    %% Empty file is a blank line
+    ?assertEqual(eof, erlmd_tokenizer:current(T1)).
