@@ -43,13 +43,15 @@ document_structure_test() ->
     ?assertEqual(document, (lists:last(Events))#event.name),
     ?assertEqual(exit, (lists:last(Events))#event.kind).
 
-%% Test 3: Document with content (will fail since paragraph not implemented)
-%%         This test shows the expected behavior when paragraph IS implemented
-document_with_content_will_fail_test() ->
-    Result = parse_document(<<"Hello">>),
-    %% Since paragraph is not implemented, this will return error
-    %% When paragraph is implemented in Phase 5, this should succeed
-    case Result of
-        {error, _, _} -> ok;  % Expected for now
-        {ok, _} -> ?assert(false)  % Should not succeed yet
-    end.
+%% Test 3: Document with content (paragraph now implemented in Phase 5)
+document_with_content_test() ->
+    {ok, T1} = parse_document(<<"Hello">>),
+    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+
+    %% Should have document events
+    DocEvents = [E || E <- Events, E#event.name =:= document],
+    ?assertEqual(2, length(DocEvents)),
+
+    %% Should have paragraph events
+    ParaEvents = [E || E <- Events, E#event.name =:= paragraph],
+    ?assertEqual(2, length(ParaEvents)).

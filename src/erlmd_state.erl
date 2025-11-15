@@ -81,7 +81,12 @@ call(StateName, Tokenizer) ->
         character_reference -> stub_nok(character_reference, Tokenizer);
 
         %% Block constructs (Phase 5+)
-        paragraph -> stub_nok(paragraph, Tokenizer);
+        %% Paragraph (implemented in Phase 5)
+        paragraph -> erlmd_cnstr_paragraph:start(Tokenizer);
+        paragraph_line_start -> erlmd_cnstr_paragraph:line_start(Tokenizer);
+        paragraph_inside -> erlmd_cnstr_paragraph:inside(Tokenizer);
+        paragraph_after_line -> erlmd_cnstr_paragraph:after_line(Tokenizer);
+
         heading_atx -> stub_nok(heading_atx, Tokenizer);
         heading_setext -> stub_nok(heading_setext, Tokenizer);
 
