@@ -87,7 +87,14 @@ call(StateName, Tokenizer) ->
         paragraph_inside -> erlmd_cnstr_paragraph:inside(Tokenizer);
         paragraph_after_line -> erlmd_cnstr_paragraph:after_line(Tokenizer);
 
-        heading_atx -> stub_nok(heading_atx, Tokenizer);
+        %% ATX Heading (implemented in Phase 5)
+        heading_atx -> erlmd_cnstr_heading_atx:start(Tokenizer);
+        heading_atx_before -> erlmd_cnstr_heading_atx:before(Tokenizer);
+        heading_atx_after_prefix -> erlmd_cnstr_heading_atx:after_prefix(Tokenizer);
+        heading_atx_sequence_open -> erlmd_cnstr_heading_atx:sequence_open(Tokenizer);
+        heading_atx_after_sequence -> erlmd_cnstr_heading_atx:after_sequence(Tokenizer);
+        heading_atx_content_inside -> erlmd_cnstr_heading_atx:content_inside(Tokenizer);
+
         heading_setext -> stub_nok(heading_setext, Tokenizer);
 
         %% Thematic break (implemented in Phase 5)
