@@ -21,14 +21,14 @@
 %%% API Functions
 %%%=============================================================================
 
--spec start(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec start(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Entry point for paragraph construct.
 %%
 %% Paragraphs are the default - if we get here, we're starting a paragraph.
 %% This should only be called when no other block construct matches.
 start(Tokenizer) ->
-    case erlmd_tokenizer:current(Tokenizer) of
+    case erlmd_tokeniser:current(Tokenizer) of
         eof ->
             %% Empty input - no paragraph
             {nok, Tokenizer};
@@ -37,7 +37,7 @@ start(Tokenizer) ->
             {nok, Tokenizer};
         _ ->
             %% Start paragraph and parse first line
-            T1 = erlmd_tokenizer:enter(Tokenizer, paragraph),
+            T1 = erlmd_tokeniser:enter(Tokenizer, paragraph),
             {{retry, paragraph_line_start}, T1}
     end.
 
@@ -47,62 +47,62 @@ start(Tokenizer) ->
 
 %% @doc Start of a line in the paragraph.
 %% Exported for state machine.
--spec line_start(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec line_start(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 line_start(Tokenizer) ->
-    case erlmd_tokenizer:current(Tokenizer) of
+    case erlmd_tokeniser:current(Tokenizer) of
         eof ->
             %% EOF - end paragraph
-            T1 = erlmd_tokenizer:exit(Tokenizer, paragraph),
+            T1 = erlmd_tokeniser:exit(Tokenizer, paragraph),
             {ok, T1};
         $\n ->
             %% Blank line - end paragraph
-            T1 = erlmd_tokenizer:exit(Tokenizer, paragraph),
+            T1 = erlmd_tokeniser:exit(Tokenizer, paragraph),
             {ok, T1};
         _ ->
             %% Content - enter data and parse
-            T1 = erlmd_tokenizer:enter(Tokenizer, data),
+            T1 = erlmd_tokeniser:enter(Tokenizer, data),
             {{retry, paragraph_inside}, T1}
     end.
 
 %% @doc Inside paragraph content - parsing text.
 %% Exported for state machine.
--spec inside(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec inside(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 inside(Tokenizer) ->
-    case erlmd_tokenizer:current(Tokenizer) of
+    case erlmd_tokeniser:current(Tokenizer) of
         eof ->
             %% EOF - exit data and paragraph
-            T1 = erlmd_tokenizer:exit(Tokenizer, data),
-            T2 = erlmd_tokenizer:exit(T1, paragraph),
+            T1 = erlmd_tokeniser:exit(Tokenizer, data),
+            T2 = erlmd_tokeniser:exit(T1, paragraph),
             {ok, T2};
 
         $\n ->
             %% Line ending - exit data, consume newline, check for continuation
-            T1 = erlmd_tokenizer:exit(Tokenizer, data),
-            T2 = erlmd_tokenizer:consume(T1),
+            T1 = erlmd_tokeniser:exit(Tokenizer, data),
+            T2 = erlmd_tokeniser:consume(T1),
             {{next, paragraph_after_line}, T2};
 
         _Byte ->
             %% Regular character - consume and continue
-            T1 = erlmd_tokenizer:consume(Tokenizer),
+            T1 = erlmd_tokeniser:consume(Tokenizer),
             {{next, paragraph_inside}, T1}
     end.
 
 %% @doc After a line ending - check if paragraph continues.
 %% @private
--spec after_line(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec after_line(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 after_line(Tokenizer) ->
-    case erlmd_tokenizer:current(Tokenizer) of
+    case erlmd_tokeniser:current(Tokenizer) of
         eof ->
             %% EOF after line - end paragraph
-            T1 = erlmd_tokenizer:exit(Tokenizer, paragraph),
+            T1 = erlmd_tokeniser:exit(Tokenizer, paragraph),
             {ok, T1};
 
         $\n ->
             %% Another newline (blank line) - end paragraph
-            T1 = erlmd_tokenizer:exit(Tokenizer, paragraph),
+            T1 = erlmd_tokeniser:exit(Tokenizer, paragraph),
             {ok, T1};
 
         _ ->

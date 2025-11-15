@@ -5,18 +5,18 @@
 %%% @end
 %%%-----------------------------------------------------------------------------
 
--module(erlmd_tokenizer_test).
+-module(erlmd_tokeniser_test).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("types.hrl").
--include("tokenizer_internal.hrl").
+-include("tokeniser.hrl").
 
 %%%=============================================================================
 %%% Creation Tests
 %%%=============================================================================
 
 new_tokenizer_test() ->
-    T = erlmd_tokenizer:new(<<"hello">>, #{}),
+    T = erlmd_tokeniser:new(<<"hello">>, #{}),
     ?assertEqual(0, T#tokenizer.index),
     ?assertEqual(1, T#tokenizer.line),
     ?assertEqual(1, T#tokenizer.column),
@@ -24,13 +24,13 @@ new_tokenizer_test() ->
     ?assertEqual([], T#tokenizer.stack).
 
 new_empty_test() ->
-    T = erlmd_tokenizer:new(<<>>, #{}),
+    T = erlmd_tokeniser:new(<<>>, #{}),
     ?assertEqual(0, T#tokenizer.index),
     ?assertEqual(<<>>, T#tokenizer.bytes).
 
 new_with_options_test() ->
     Opts = #{gfm => true},
-    T = erlmd_tokenizer:new(<<"test">>, Opts),
+    T = erlmd_tokeniser:new(<<"test">>, Opts),
     ?assertEqual(Opts, T#tokenizer.options).
 
 %%%=============================================================================
@@ -38,99 +38,99 @@ new_with_options_test() ->
 %%%=============================================================================
 
 current_on_first_byte_test() ->
-    T = erlmd_tokenizer:new(<<"abc">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    ?assertEqual($a, erlmd_tokenizer:current(T1)).
+    T = erlmd_tokeniser:new(<<"abc">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    ?assertEqual($a, erlmd_tokeniser:current(T1)).
 
 current_at_eof_test() ->
-    T = erlmd_tokenizer:new(<<>>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    ?assertEqual(eof, erlmd_tokenizer:current(T1)).
+    T = erlmd_tokeniser:new(<<>>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    ?assertEqual(eof, erlmd_tokeniser:current(T1)).
 
 consume_simple_test() ->
-    T = erlmd_tokenizer:new(<<"abc">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    ?assertEqual($a, erlmd_tokenizer:current(T1)),
-    T2 = erlmd_tokenizer:consume(T1),
+    T = erlmd_tokeniser:new(<<"abc">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    ?assertEqual($a, erlmd_tokeniser:current(T1)),
+    T2 = erlmd_tokeniser:consume(T1),
     ?assertEqual(1, T2#tokenizer.index),
     ?assertEqual(2, T2#tokenizer.column),
     ?assertEqual($a, T2#tokenizer.previous).
 
 consume_sequence_test() ->
-    T = erlmd_tokenizer:new(<<"abc">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:consume(T1),
-    T3 = erlmd_tokenizer:prepare_byte(T2),
-    T4 = erlmd_tokenizer:consume(T3),
-    T5 = erlmd_tokenizer:prepare_byte(T4),
-    T6 = erlmd_tokenizer:consume(T5),
+    T = erlmd_tokeniser:new(<<"abc">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:consume(T1),
+    T3 = erlmd_tokeniser:prepare_byte(T2),
+    T4 = erlmd_tokeniser:consume(T3),
+    T5 = erlmd_tokeniser:prepare_byte(T4),
+    T6 = erlmd_tokeniser:consume(T5),
 
     ?assertEqual(3, T6#tokenizer.index),
     ?assertEqual(4, T6#tokenizer.column),
     ?assertEqual($c, T6#tokenizer.previous).
 
 consume_to_eof_test() ->
-    T = erlmd_tokenizer:new(<<"ab">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:consume(T1),
-    T3 = erlmd_tokenizer:prepare_byte(T2),
-    T4 = erlmd_tokenizer:consume(T3),
-    T5 = erlmd_tokenizer:prepare_byte(T4),
-    ?assertEqual(eof, erlmd_tokenizer:current(T5)).
+    T = erlmd_tokeniser:new(<<"ab">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:consume(T1),
+    T3 = erlmd_tokeniser:prepare_byte(T2),
+    T4 = erlmd_tokeniser:consume(T3),
+    T5 = erlmd_tokeniser:prepare_byte(T4),
+    ?assertEqual(eof, erlmd_tokeniser:current(T5)).
 
 %%%=============================================================================
 %%% Line Ending Tests
 %%%=============================================================================
 
 consume_newline_test() ->
-    T = erlmd_tokenizer:new(<<"a\nb">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:consume(T1),  % consume 'a'
-    T3 = erlmd_tokenizer:prepare_byte(T2),
-    T4 = erlmd_tokenizer:consume(T3),  % consume '\n'
+    T = erlmd_tokeniser:new(<<"a\nb">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:consume(T1),  % consume 'a'
+    T3 = erlmd_tokeniser:prepare_byte(T2),
+    T4 = erlmd_tokeniser:consume(T3),  % consume '\n'
 
     ?assertEqual(2, T4#tokenizer.line),
     ?assertEqual(1, T4#tokenizer.column),
     ?assertEqual($\n, T4#tokenizer.previous).
 
 consume_crlf_test() ->
-    T = erlmd_tokenizer:new(<<"a\r\nb">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:consume(T1),  % consume 'a'
-    T3 = erlmd_tokenizer:prepare_byte(T2),
-    T4 = erlmd_tokenizer:consume(T3),  % consume '\r' (ignored)
-    T5 = erlmd_tokenizer:prepare_byte(T4),
-    T6 = erlmd_tokenizer:consume(T5),  % consume '\n'
+    T = erlmd_tokeniser:new(<<"a\r\nb">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:consume(T1),  % consume 'a'
+    T3 = erlmd_tokeniser:prepare_byte(T2),
+    T4 = erlmd_tokeniser:consume(T3),  % consume '\r' (ignored)
+    T5 = erlmd_tokeniser:prepare_byte(T4),
+    T6 = erlmd_tokeniser:consume(T5),  % consume '\n'
 
     ?assertEqual(2, T6#tokenizer.line),
     ?assertEqual(1, T6#tokenizer.column).
 
 consume_bare_cr_test() ->
-    T = erlmd_tokenizer:new(<<"a\rb">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:consume(T1),  % consume 'a'
-    T3 = erlmd_tokenizer:prepare_byte(T2),
-    T4 = erlmd_tokenizer:consume(T3),  % consume '\r' -> treated as '\n'
+    T = erlmd_tokeniser:new(<<"a\rb">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:consume(T1),  % consume 'a'
+    T3 = erlmd_tokeniser:prepare_byte(T2),
+    T4 = erlmd_tokeniser:consume(T3),  % consume '\r' -> treated as '\n'
 
     ?assertEqual(2, T4#tokenizer.line),
     ?assertEqual(1, T4#tokenizer.column).
 
 multiline_text_test() ->
-    T = erlmd_tokenizer:new(<<"line1\nline2\nline3">>, #{}),
+    T = erlmd_tokeniser:new(<<"line1\nline2\nline3">>, #{}),
 
     %% Manually consume "line1\n" - 6 characters
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:consume(T1),  % l
-    T3 = erlmd_tokenizer:prepare_byte(T2),
-    T4 = erlmd_tokenizer:consume(T3),  % i
-    T5 = erlmd_tokenizer:prepare_byte(T4),
-    T6 = erlmd_tokenizer:consume(T5),  % n
-    T7 = erlmd_tokenizer:prepare_byte(T6),
-    T8 = erlmd_tokenizer:consume(T7),  % e
-    T9 = erlmd_tokenizer:prepare_byte(T8),
-    T10 = erlmd_tokenizer:consume(T9),  % 1
-    T11 = erlmd_tokenizer:prepare_byte(T10),
-    T12 = erlmd_tokenizer:consume(T11),  % \n
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:consume(T1),  % l
+    T3 = erlmd_tokeniser:prepare_byte(T2),
+    T4 = erlmd_tokeniser:consume(T3),  % i
+    T5 = erlmd_tokeniser:prepare_byte(T4),
+    T6 = erlmd_tokeniser:consume(T5),  % n
+    T7 = erlmd_tokeniser:prepare_byte(T6),
+    T8 = erlmd_tokeniser:consume(T7),  % e
+    T9 = erlmd_tokeniser:prepare_byte(T8),
+    T10 = erlmd_tokeniser:consume(T9),  % 1
+    T11 = erlmd_tokeniser:prepare_byte(T10),
+    T12 = erlmd_tokeniser:consume(T11),  % \n
 
     ?assertEqual(2, T12#tokenizer.line),
     ?assertEqual(1, T12#tokenizer.column).
@@ -140,29 +140,29 @@ multiline_text_test() ->
 %%%=============================================================================
 
 consume_tab_at_column_1_test() ->
-    T = erlmd_tokenizer:new(<<"\tX">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
+    T = erlmd_tokeniser:new(<<"\tX">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
 
     %% Tab at column 1 - current should return the tab or first virtual space
-    Curr = erlmd_tokenizer:current(T1),
+    Curr = erlmd_tokeniser:current(T1),
     ?assert(Curr =:= $\t orelse Curr =:= $\s),
 
     %% Consume the tab (may emit virtual spaces)
-    T2 = erlmd_tokenizer:consume(T1),
+    T2 = erlmd_tokeniser:consume(T1),
     %% Column should have advanced
     ?assert(T2#tokenizer.column > 1).
 
 consume_tab_at_column_3_test() ->
-    T = erlmd_tokenizer:new(<<"ab\tX">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:consume(T1),  % a
-    T3 = erlmd_tokenizer:prepare_byte(T2),
-    T4 = erlmd_tokenizer:consume(T3),  % b
+    T = erlmd_tokeniser:new(<<"ab\tX">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:consume(T1),  % a
+    T3 = erlmd_tokeniser:prepare_byte(T2),
+    T4 = erlmd_tokeniser:consume(T3),  % b
     ?assertEqual(3, T4#tokenizer.column),
 
     %% Now consume tab
-    T5 = erlmd_tokenizer:prepare_byte(T4),
-    T6 = erlmd_tokenizer:consume(T5),
+    T5 = erlmd_tokeniser:prepare_byte(T4),
+    T6 = erlmd_tokeniser:consume(T5),
     %% Column should have advanced
     ?assert(T6#tokenizer.column > 3).
 
@@ -171,9 +171,9 @@ consume_tab_at_column_3_test() ->
 %%%=============================================================================
 
 enter_exit_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:enter(T, paragraph),
-    T2 = erlmd_tokenizer:exit(T1, paragraph),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:enter(T, paragraph),
+    T2 = erlmd_tokeniser:exit(T1, paragraph),
 
     ?assertEqual([], T2#tokenizer.stack),
     ?assertEqual(2, length(T2#tokenizer.events)),
@@ -185,36 +185,36 @@ enter_exit_test() ->
     ?assertEqual(paragraph, Exit#event.name).
 
 nested_events_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:enter(T, paragraph),
-    T2 = erlmd_tokenizer:enter(T1, emphasis),
-    T3 = erlmd_tokenizer:exit(T2, emphasis),
-    T4 = erlmd_tokenizer:exit(T3, paragraph),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:enter(T, paragraph),
+    T2 = erlmd_tokeniser:enter(T1, emphasis),
+    T3 = erlmd_tokeniser:exit(T2, emphasis),
+    T4 = erlmd_tokeniser:exit(T3, paragraph),
 
     ?assertEqual([], T4#tokenizer.stack),
     ?assertEqual(4, length(T4#tokenizer.events)).
 
 exit_mismatch_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:enter(T, paragraph),
-    ?assertError({exit_mismatch, _}, erlmd_tokenizer:exit(T1, heading_atx)).
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:enter(T, paragraph),
+    ?assertError({exit_mismatch, _}, erlmd_tokeniser:exit(T1, heading_atx)).
 
 exit_without_enter_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    ?assertError({exit_without_enter, _}, erlmd_tokenizer:exit(T, paragraph)).
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    ?assertError({exit_without_enter, _}, erlmd_tokeniser:exit(T, paragraph)).
 
 enter_with_link_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
     Link = #link{content = text},
-    T1 = erlmd_tokenizer:enter_with_link(T, paragraph, Link),
+    T1 = erlmd_tokeniser:enter_with_link(T, paragraph, Link),
 
     ?assertEqual(1, length(T1#tokenizer.events)),
     [Event] = T1#tokenizer.events,
     ?assertEqual(Link, Event#event.link).
 
 event_position_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:enter(T, paragraph),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:enter(T, paragraph),
 
     [Event] = T1#tokenizer.events,
     ?assertEqual(1, Event#event.point#point.line),
@@ -226,70 +226,70 @@ event_position_test() ->
 %%%=============================================================================
 
 attempt_success_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:attempt(T, ok, nok),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:attempt(T, ok, nok),
 
     ?assertEqual(1, length(T1#tokenizer.attempts)),
 
-    {ok, T2} = erlmd_tokenizer:handle_attempt_result(T1, ok),
+    {ok, T2} = erlmd_tokeniser:handle_attempt_result(T1, ok),
     ?assertEqual(0, length(T2#tokenizer.attempts)).
 
 attempt_failure_reverts_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:enter(T, paragraph),
-    T2 = erlmd_tokenizer:attempt(T1, ok, nok),
-    T3 = erlmd_tokenizer:enter(T2, emphasis),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:enter(T, paragraph),
+    T2 = erlmd_tokeniser:attempt(T1, ok, nok),
+    T3 = erlmd_tokeniser:enter(T2, emphasis),
 
     %% Should have 2 events and 2 stack items
     ?assertEqual(2, length(T3#tokenizer.events)),
     ?assertEqual(2, length(T3#tokenizer.stack)),
 
     %% Attempt fails - should revert to T1 state
-    {nok, T4} = erlmd_tokenizer:handle_attempt_result(T3, nok),
+    {nok, T4} = erlmd_tokeniser:handle_attempt_result(T3, nok),
 
     %% Should revert to 1 event and 1 stack item
     ?assertEqual(1, length(T4#tokenizer.events)),
     ?assertEqual(1, length(T4#tokenizer.stack)).
 
 check_always_reverts_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:enter(T, paragraph),
-    T2 = erlmd_tokenizer:check(T1, ok, nok),
-    T3 = erlmd_tokenizer:enter(T2, emphasis),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:enter(T, paragraph),
+    T2 = erlmd_tokeniser:check(T1, ok, nok),
+    T3 = erlmd_tokeniser:enter(T2, emphasis),
 
     %% Check succeeds but still reverts
-    {ok, T4} = erlmd_tokenizer:handle_attempt_result(T3, ok),
+    {ok, T4} = erlmd_tokeniser:handle_attempt_result(T3, ok),
 
     %% Should revert to T1 state even though ok
     ?assertEqual(1, length(T4#tokenizer.events)),
     ?assertEqual(1, length(T4#tokenizer.stack)).
 
 nested_attempts_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:attempt(T, ok, nok),
-    T2 = erlmd_tokenizer:attempt(T1, ok, nok),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:attempt(T, ok, nok),
+    T2 = erlmd_tokeniser:attempt(T1, ok, nok),
 
     ?assertEqual(2, length(T2#tokenizer.attempts)),
 
-    {ok, T3} = erlmd_tokenizer:handle_attempt_result(T2, ok),
+    {ok, T3} = erlmd_tokeniser:handle_attempt_result(T2, ok),
     ?assertEqual(1, length(T3#tokenizer.attempts)),
 
-    {ok, T4} = erlmd_tokenizer:handle_attempt_result(T3, ok),
+    {ok, T4} = erlmd_tokeniser:handle_attempt_result(T3, ok),
     ?assertEqual(0, length(T4#tokenizer.attempts)).
 
 attempt_with_position_changes_test() ->
-    T = erlmd_tokenizer:new(<<"abc">>, #{}),
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:attempt(T1, ok, nok),
-    T3 = erlmd_tokenizer:consume(T2),
-    T4 = erlmd_tokenizer:prepare_byte(T3),
-    T5 = erlmd_tokenizer:consume(T4),
+    T = erlmd_tokeniser:new(<<"abc">>, #{}),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:attempt(T1, ok, nok),
+    T3 = erlmd_tokeniser:consume(T2),
+    T4 = erlmd_tokeniser:prepare_byte(T3),
+    T5 = erlmd_tokeniser:consume(T4),
 
     %% Should be at index 2
     ?assertEqual(2, T5#tokenizer.index),
 
     %% Revert should go back to index 0
-    {nok, T6} = erlmd_tokenizer:handle_attempt_result(T5, nok),
+    {nok, T6} = erlmd_tokeniser:handle_attempt_result(T5, nok),
     ?assertEqual(0, T6#tokenizer.index).
 
 %%%=============================================================================
@@ -297,16 +297,16 @@ attempt_with_position_changes_test() ->
 %%%=============================================================================
 
 finalize_empty_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    {ok, Events} = erlmd_tokenizer:finalize(T),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    {ok, Events} = erlmd_tokeniser:finalize(T),
     ?assertEqual([], Events).
 
 finalize_with_events_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:enter(T, paragraph),
-    T2 = erlmd_tokenizer:exit(T1, paragraph),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:enter(T, paragraph),
+    T2 = erlmd_tokeniser:exit(T1, paragraph),
 
-    {ok, Events} = erlmd_tokenizer:finalize(T2),
+    {ok, Events} = erlmd_tokeniser:finalize(T2),
     ?assertEqual(2, length(Events)),
 
     [Enter, Exit] = Events,  % Corrected order
@@ -314,17 +314,17 @@ finalize_with_events_test() ->
     ?assertEqual(exit, Exit#event.kind).
 
 finalize_with_unclosed_tokens_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:enter(T, paragraph),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:enter(T, paragraph),
 
-    {error, {unclosed_tokens, Stack}} = erlmd_tokenizer:finalize(T1),
+    {error, {unclosed_tokens, Stack}} = erlmd_tokeniser:finalize(T1),
     ?assertEqual([paragraph], Stack).
 
 finalize_with_pending_attempts_test() ->
-    T = erlmd_tokenizer:new(<<"test">>, #{}),
-    T1 = erlmd_tokenizer:attempt(T, ok, nok),
+    T = erlmd_tokeniser:new(<<"test">>, #{}),
+    T1 = erlmd_tokeniser:attempt(T, ok, nok),
 
-    {error, {pending_attempts, Count}} = erlmd_tokenizer:finalize(T1),
+    {error, {pending_attempts, Count}} = erlmd_tokeniser:finalize(T1),
     ?assertEqual(1, Count).
 
 %%%=============================================================================
@@ -334,9 +334,9 @@ finalize_with_pending_attempts_test() ->
 simple_tokenize_test() ->
     %% This will use document dispatcher from erlmd_state
     %% Using empty input since most constructs are not yet implemented
-    T = erlmd_tokenizer:new(<<>>, #{}),
-    {ok, T1} = erlmd_tokenizer:feed(T, document, <<>>),
-    {ok, _Events} = erlmd_tokenizer:finalize(T1).
+    T = erlmd_tokeniser:new(<<>>, #{}),
+    {ok, T1} = erlmd_tokeniser:feed(T, document, <<>>),
+    {ok, _Events} = erlmd_tokeniser:finalize(T1).
 
 %%%=============================================================================
 %%% Helper Functions
@@ -345,8 +345,8 @@ simple_tokenize_test() ->
 %% Consume N bytes
 consume_n(T, 0) -> T;
 consume_n(T, N) ->
-    T1 = erlmd_tokenizer:prepare_byte(T),
-    T2 = erlmd_tokenizer:consume(T1),
+    T1 = erlmd_tokeniser:prepare_byte(T),
+    T2 = erlmd_tokeniser:consume(T1),
     consume_n(T2, N - 1).
 
 %% Consume until we hit a real byte (not virtual space)
@@ -362,8 +362,8 @@ consume_until_real_byte(T, Count) ->
             %% On real byte or need to prepare
             case T#tokenizer.consumed of
                 true ->
-                    T1 = erlmd_tokenizer:prepare_byte(T),
-                    case erlmd_tokenizer:current(T1) of
+                    T1 = erlmd_tokeniser:prepare_byte(T),
+                    case erlmd_tokeniser:current(T1) of
                         eof -> T1;
                         _ -> T1
                     end;
@@ -372,7 +372,7 @@ consume_until_real_byte(T, Count) ->
             end;
         _ ->
             %% Still in virtual spaces
-            T1 = erlmd_tokenizer:prepare_byte(T),
-            T2 = erlmd_tokenizer:consume(T1),
+            T1 = erlmd_tokeniser:prepare_byte(T),
+            T2 = erlmd_tokeniser:consume(T1),
             consume_until_real_byte(T2, Count + 1)
     end.

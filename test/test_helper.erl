@@ -22,25 +22,25 @@
 %%% API Functions
 %%%=============================================================================
 
--spec make_tokenizer(binary()) -> erlmd_tokenizer:tokenizer().
+-spec make_tokenizer(binary()) -> erlmd_tokeniser:tokenizer().
 %% @doc Create a tokenizer with default settings.
 make_tokenizer(Binary) ->
     make_tokenizer(Binary, #{}).
 
--spec make_tokenizer(binary(), map()) -> erlmd_tokenizer:tokenizer().
+-spec make_tokenizer(binary(), map()) -> erlmd_tokeniser:tokenizer().
 %% @doc Create a tokenizer with custom options.
 make_tokenizer(Binary, Options) ->
-    T = erlmd_tokenizer:new(Binary, Options),
+    T = erlmd_tokeniser:new(Binary, Options),
     %% Prepare the first byte so constructs can consume
-    erlmd_tokenizer:prepare_byte(T).
+    erlmd_tokeniser:prepare_byte(T).
 
 -spec count_events([event()], atom()) -> non_neg_integer().
 %% @doc Count how many events have a specific name.
 count_events(Events, Name) ->
     length([E || E <- Events, E#event.name =:= Name]).
 
--spec run_construct(atom(), erlmd_tokenizer:tokenizer()) ->
-    {ok | nok, erlmd_tokenizer:tokenizer()}.
+-spec run_construct(atom(), erlmd_tokeniser:tokenizer()) ->
+    {ok | nok, erlmd_tokeniser:tokenizer()}.
 %% @doc Run a construct to completion (ok or nok).
 %%
 %% This simulates the tokenizer feed loop for testing purposes.
@@ -48,13 +48,13 @@ count_events(Events, Name) ->
 run_construct(StartState, T) ->
     run_construct(StartState, T, 1000).  % Max 1000 iterations
 
--spec run_construct(atom(), erlmd_tokenizer:tokenizer(), pos_integer()) ->
-    {ok | nok, erlmd_tokenizer:tokenizer()}.
+-spec run_construct(atom(), erlmd_tokeniser:tokenizer(), pos_integer()) ->
+    {ok | nok, erlmd_tokeniser:tokenizer()}.
 %% @doc Run construct with max iteration limit.
 run_construct(StartState, T, MaxIter) ->
     feed_loop({{retry, StartState}, T}, MaxIter).
 
--spec feed_until_done(atom(), binary()) -> {ok | nok, erlmd_tokenizer:tokenizer()}.
+-spec feed_until_done(atom(), binary()) -> {ok | nok, erlmd_tokeniser:tokenizer()}.
 %% @doc Feed bytes until construct completes or EOF.
 %%
 %% This is for integration testing where we want to parse
@@ -83,6 +83,6 @@ feed_loop({{retry, StateName}, T}, MaxIter) ->
     feed_loop(Result, MaxIter - 1);
 feed_loop({{next, StateName}, T}, MaxIter) ->
     % Byte already consumed by construct, prepare next byte and call next state
-    T1 = erlmd_tokenizer:prepare_byte(T),
+    T1 = erlmd_tokeniser:prepare_byte(T),
     Result = erlmd_state:call(StateName, T1),
     feed_loop(Result, MaxIter - 1).

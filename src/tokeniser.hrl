@@ -7,8 +7,8 @@
 %%% @end
 %%%-----------------------------------------------------------------------------
 
--ifndef(ERLMD_TOKENIZER_INTERNAL_HRL).
--define(ERLMD_TOKENIZER_INTERNAL_HRL, true).
+-ifndef(ERLMD_TOKENISER_HRL).
+-define(ERLMD_TOKENISER_HRL, true).
 
 -record(tokenizer, {
     %% Input and position
@@ -59,4 +59,4 @@
 -type attempt() :: #attempt{}.
 -type progress() :: #progress{}.
 
--endif. % ERLMD_TOKENIZER_INTERNAL_HRL
+-endif. % ERLMD_TOKENISER_HRL

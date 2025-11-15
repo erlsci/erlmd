@@ -25,7 +25,7 @@ parse_hard_break(Input) ->
 %% Test 1: Backslash followed by newline - creates hard break
 basic_hard_break_test() ->
     {ok, T1} = parse_hard_break(<<"\\\n">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should have hard_break_escape events
     BreakEvents = [E || E <- Events, E#event.name =:= hard_break_escape],
@@ -36,7 +36,7 @@ basic_hard_break_test() ->
 %% Test 2: Backslash with content after newline
 hard_break_with_content_test() ->
     {ok, T1} = parse_hard_break(<<"\\\ntext">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     BreakEvents = [E || E <- Events, E#event.name =:= hard_break_escape],
     ?assertEqual(2, length(BreakEvents)).
@@ -75,7 +75,7 @@ commonmark_654_test() ->
     %% bar
     %% The backslash-newline should be recognized
     {ok, T1} = parse_hard_break(<<"\\\n">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     BreakEvents = [E || E <- Events, E#event.name =:= hard_break_escape],
     ?assertEqual(2, length(BreakEvents)).
 
@@ -83,7 +83,7 @@ commonmark_654_test() ->
 commonmark_655_test() ->
     %% Similar to 654
     {ok, T1} = parse_hard_break(<<"\\\n">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     BreakEvents = [E || E <- Events, E#event.name =:= hard_break_escape],
     ?assertEqual(2, length(BreakEvents)).
 

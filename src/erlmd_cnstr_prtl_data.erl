@@ -19,34 +19,34 @@
 %%% API Functions
 %%%=============================================================================
 
--spec start(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec start(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Entry point for data construct.
 %%
 %% Checks if we should immediately consume data or check for breaks.
 start(T) ->
     at_break(T).
 
--spec at_break(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec at_break(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Check what to do at a potential break point.
 %%
 %% This is called when we're between data chunks or at the start.
 at_break(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         Byte when is_integer(Byte) ->
             case is_marker(T, Byte) of
                 false ->
                     if
                         Byte =:= $\n ->
                             %% Line ending - emit it as line_ending event
-                            T1 = erlmd_tokenizer:enter(T, line_ending),
-                            T2 = erlmd_tokenizer:consume(T1),
-                            T3 = erlmd_tokenizer:exit(T2, line_ending),
+                            T1 = erlmd_tokeniser:enter(T, line_ending),
+                            T2 = erlmd_tokeniser:consume(T1),
+                            T3 = erlmd_tokeniser:exit(T2, line_ending),
                             {{next, data_at_break}, T3};
                         true ->
                             %% Regular data - enter and parse
-                            T1 = erlmd_tokenizer:enter(T, data),
+                            T1 = erlmd_tokeniser:enter(T, data),
                             {{retry, data_inside}, T1}
                     end;
                 true ->
@@ -58,28 +58,28 @@ at_break(T) ->
             {ok, T}
     end.
 
--spec inside(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec inside(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Parse the inside of a data chunk.
 %%
 %% Consumes bytes until we hit a line ending, marker, or EOF.
 inside(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         Byte when is_integer(Byte) ->
             IsMarker = is_marker(T, Byte),
             if
                 Byte =/= $\n andalso not IsMarker ->
                     %% Regular byte - consume and continue
-                    T1 = erlmd_tokenizer:consume(T),
+                    T1 = erlmd_tokeniser:consume(T),
                     {{next, data_inside}, T1};
                 true ->
                     %% Hit a line ending or marker - exit data
-                    T1 = erlmd_tokenizer:exit(T, data),
+                    T1 = erlmd_tokeniser:exit(T, data),
                     {{retry, data_at_break}, T1}
             end;
         eof ->
             %% End of input - exit data
-            T1 = erlmd_tokenizer:exit(T, data),
+            T1 = erlmd_tokeniser:exit(T, data),
             {{retry, data_at_break}, T1}
     end.
 
@@ -90,7 +90,7 @@ inside(T) ->
 %% @doc Check if a byte is a marker.
 %%
 %% Markers are special characters that indicate the start of other constructs.
--spec is_marker(erlmd_tokenizer:tokenizer(), byte()) -> boolean().
+-spec is_marker(erlmd_tokeniser:tokenizer(), byte()) -> boolean().
 is_marker(T, Byte) ->
-    Markers = erlmd_tokenizer:get_markers(T),
+    Markers = erlmd_tokeniser:get_markers(T),
     lists:member(Byte, Markers).

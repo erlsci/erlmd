@@ -18,7 +18,6 @@
 -export([start/1, open/1, numeric/1, value/1]).
 
 -include("types.hrl").
--include("tokenizer_internal.hrl").
 
 -define(MAX_NAMED_LENGTH, 31).
 
@@ -28,12 +27,12 @@
 
 %% @doc Entry point - checks for ampersand
 start(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         $& ->
-            T1 = erlmd_tokenizer:enter(T, character_reference),
-            T2 = erlmd_tokenizer:enter(T1, character_reference_marker),
-            T3 = erlmd_tokenizer:consume(T2),
-            T4 = erlmd_tokenizer:exit(T3, character_reference_marker),
+            T1 = erlmd_tokeniser:enter(T, character_reference),
+            T2 = erlmd_tokeniser:enter(T1, character_reference_marker),
+            T3 = erlmd_tokeniser:consume(T2),
+            T4 = erlmd_tokeniser:exit(T3, character_reference_marker),
             {{next, character_reference_open}, T4};
         _ ->
             {nok, T}
@@ -41,20 +40,20 @@ start(T) ->
 
 %% @doc After &, check if numeric or named
 open(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         $# ->
             %% Numeric reference - mark as numeric and consume #
-            T1 = erlmd_tokenizer:set_state(T, char_ref_type, numeric),
-            T2 = erlmd_tokenizer:enter(T1, character_reference_marker_numeric),
-            T3 = erlmd_tokenizer:consume(T2),
-            T4 = erlmd_tokenizer:exit(T3, character_reference_marker_numeric),
+            T1 = erlmd_tokeniser:set_state(T, char_ref_type, numeric),
+            T2 = erlmd_tokeniser:enter(T1, character_reference_marker_numeric),
+            T3 = erlmd_tokeniser:consume(T2),
+            T4 = erlmd_tokeniser:exit(T3, character_reference_marker_numeric),
             {{next, character_reference_numeric}, T4};
 
         C when (C >= $a andalso C =< $z) orelse (C >= $A andalso C =< $Z) ->
             %% Named reference - start collecting
-            T1 = erlmd_tokenizer:set_state(T, char_ref_type, named),
-            T2 = erlmd_tokenizer:set_state(T1, char_ref_size, 0),
-            T3 = erlmd_tokenizer:enter(T2, character_reference_value),
+            T1 = erlmd_tokeniser:set_state(T, char_ref_type, named),
+            T2 = erlmd_tokeniser:set_state(T1, char_ref_size, 0),
+            T3 = erlmd_tokeniser:enter(T2, character_reference_value),
             {{retry, character_reference_value}, T3};
 
         _ ->
@@ -64,22 +63,22 @@ open(T) ->
 
 %% @doc After &#, check if hex or decimal
 numeric(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         C when C =:= $x orelse C =:= $X ->
             %% Hexadecimal
-            T1 = erlmd_tokenizer:set_state(T, char_ref_num_type, hex),
-            T2 = erlmd_tokenizer:set_state(T1, char_ref_size, 0),
-            T3 = erlmd_tokenizer:enter(T2, character_reference_marker_hexadecimal),
-            T4 = erlmd_tokenizer:consume(T3),
-            T5 = erlmd_tokenizer:exit(T4, character_reference_marker_hexadecimal),
-            T6 = erlmd_tokenizer:enter(T5, character_reference_value),
+            T1 = erlmd_tokeniser:set_state(T, char_ref_num_type, hex),
+            T2 = erlmd_tokeniser:set_state(T1, char_ref_size, 0),
+            T3 = erlmd_tokeniser:enter(T2, character_reference_marker_hexadecimal),
+            T4 = erlmd_tokeniser:consume(T3),
+            T5 = erlmd_tokeniser:exit(T4, character_reference_marker_hexadecimal),
+            T6 = erlmd_tokeniser:enter(T5, character_reference_value),
             {{next, character_reference_value}, T6};
 
         C when C >= $0 andalso C =< $9 ->
             %% Decimal
-            T1 = erlmd_tokenizer:set_state(T, char_ref_num_type, decimal),
-            T2 = erlmd_tokenizer:set_state(T1, char_ref_size, 0),
-            T3 = erlmd_tokenizer:enter(T2, character_reference_value),
+            T1 = erlmd_tokeniser:set_state(T, char_ref_num_type, decimal),
+            T2 = erlmd_tokeniser:set_state(T1, char_ref_size, 0),
+            T3 = erlmd_tokeniser:enter(T2, character_reference_value),
             {{retry, character_reference_value}, T3};
 
         _ ->
@@ -89,13 +88,13 @@ numeric(T) ->
 
 %% @doc Collect value characters and validate
 value(T) ->
-    RefType = erlmd_tokenizer:get_state(T, char_ref_type),
-    Size = erlmd_tokenizer:get_state(T, char_ref_size),
+    RefType = erlmd_tokeniser:get_state(T, char_ref_type),
+    Size = erlmd_tokeniser:get_state(T, char_ref_size),
 
     case RefType of
         named -> value_named(T, Size);
         numeric ->
-            NumType = erlmd_tokenizer:get_state(T, char_ref_num_type),
+            NumType = erlmd_tokeniser:get_state(T, char_ref_num_type),
             value_numeric(T, NumType, Size)
     end.
 
@@ -106,12 +105,12 @@ value(T) ->
 %% @private
 %% Handle named character reference value collection
 value_named(T, Size) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         $; when Size > 0 ->
             %% End of named reference - consume semicolon and validate
-            T1 = erlmd_tokenizer:exit(T, character_reference_value),
-            T2 = erlmd_tokenizer:consume(T1),
-            T3 = erlmd_tokenizer:exit(T2, character_reference),
+            T1 = erlmd_tokeniser:exit(T, character_reference_value),
+            T2 = erlmd_tokeniser:consume(T1),
+            T3 = erlmd_tokeniser:exit(T2, character_reference),
             {ok, T3};
 
         $; when Size =:= 0 ->
@@ -123,8 +122,8 @@ value_named(T, Size) ->
                 (C >= $A andalso C =< $Z) orelse
                 (C >= $0 andalso C =< $9)) ->
             %% Valid name character - consume and continue
-            T1 = erlmd_tokenizer:consume(T),
-            T2 = erlmd_tokenizer:set_state(T1, char_ref_size, Size + 1),
+            T1 = erlmd_tokeniser:consume(T),
+            T2 = erlmd_tokeniser:set_state(T1, char_ref_size, Size + 1),
             {{next, character_reference_value}, T2};
 
         _ when Size >= ?MAX_NAMED_LENGTH ->
@@ -142,12 +141,12 @@ value_numeric(T, NumType, Size) ->
     MaxSize = erlmd_util_char_ref:value_max(NumType),
     IsValidDigit = erlmd_util_char_ref:value_test(NumType),
 
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         $; when Size > 0 ->
             %% End of numeric reference - consume semicolon and validate
-            T1 = erlmd_tokenizer:exit(T, character_reference_value),
-            T2 = erlmd_tokenizer:consume(T1),
-            T3 = erlmd_tokenizer:exit(T2, character_reference),
+            T1 = erlmd_tokeniser:exit(T, character_reference_value),
+            T2 = erlmd_tokeniser:consume(T1),
+            T3 = erlmd_tokeniser:exit(T2, character_reference),
             {ok, T3};
 
         $; when Size =:= 0 ->
@@ -158,8 +157,8 @@ value_numeric(T, NumType, Size) ->
             case IsValidDigit(C) of
                 true ->
                     %% Valid digit - consume and continue
-                    T1 = erlmd_tokenizer:consume(T),
-                    T2 = erlmd_tokenizer:set_state(T1, char_ref_size, Size + 1),
+                    T1 = erlmd_tokeniser:consume(T),
+                    T2 = erlmd_tokeniser:set_state(T1, char_ref_size, Size + 1),
                     {{next, character_reference_value}, T2};
                 false ->
                     %% Invalid digit

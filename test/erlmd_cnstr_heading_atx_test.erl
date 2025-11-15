@@ -29,7 +29,7 @@ parse_heading(Input) ->
 %% Test 1: Simple h1 heading
 simple_h1_test() ->
     {Result, T1} = parse_heading(<<"# Heading">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should succeed
     ?assertEqual(ok, Result),
@@ -42,7 +42,7 @@ simple_h1_test() ->
 %% Test 2: Simple h2 heading
 simple_h2_test() ->
     {Result, T1} = parse_heading(<<"## Heading">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -60,7 +60,7 @@ all_levels_test() ->
     ],
     lists:foreach(fun(Input) ->
         {Result, T1} = parse_heading(Input),
-        Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+        Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
         ?assertEqual(ok, Result),
         HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
         ?assertEqual(2, length(HeadingEvents))
@@ -79,7 +79,7 @@ no_space_test() ->
 %% Test 6: Heading with closing sequence
 with_closing_test() ->
     {Result, T1} = parse_heading(<<"# Heading #">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -92,7 +92,7 @@ with_closing_test() ->
 %% Test 7: Heading with multiple closing hashes
 multiple_closing_test() ->
     {Result, T1} = parse_heading(<<"## Heading ####">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -101,7 +101,7 @@ multiple_closing_test() ->
 %% Test 8: Empty heading
 empty_heading_test() ->
     {Result, T1} = parse_heading(<<"#">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -110,7 +110,7 @@ empty_heading_test() ->
 %% Test 9: Empty heading with space
 empty_with_space_test() ->
     {Result, T1} = parse_heading(<<"# ">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -119,7 +119,7 @@ empty_with_space_test() ->
 %% Test 10: Heading at EOF (no newline)
 at_eof_test() ->
     {Result, T1} = parse_heading(<<"### Heading text">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -128,7 +128,7 @@ at_eof_test() ->
 %% Test 11: Heading with leading space
 with_leading_space_test() ->
     {Result, T1} = parse_heading(<<" # Heading">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -137,7 +137,7 @@ with_leading_space_test() ->
 %% Test 12: Heading with leading spaces (3 max)
 with_three_spaces_test() ->
     {Result, T1} = parse_heading(<<"   ## Heading">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -146,7 +146,7 @@ with_three_spaces_test() ->
 %% Test 13: Heading with newline
 with_newline_test() ->
     {Result, T1} = parse_heading(<<"# Heading\n">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -155,7 +155,7 @@ with_newline_test() ->
 %% Test 14: Heading with mixed content
 mixed_content_test() ->
     {Result, T1} = parse_heading(<<"# Hello world foo bar">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -168,7 +168,7 @@ mixed_content_test() ->
 %% Test 15: Closing sequence requires space before it
 closing_no_space_test() ->
     {Result, T1} = parse_heading(<<"# Heading#">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     %% The # at the end is part of content, not a closing sequence
@@ -178,7 +178,7 @@ closing_no_space_test() ->
 %% Test 16: Heading with tabs
 with_tabs_test() ->
     {Result, T1} = parse_heading(<<"#\tHeading">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],
@@ -187,7 +187,7 @@ with_tabs_test() ->
 %% Test 17: Just hashes (empty level 6)
 just_six_hashes_test() ->
     {Result, T1} = parse_heading(<<"######">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     HeadingEvents = [E || E <- Events, E#event.name =:= heading_atx],

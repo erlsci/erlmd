@@ -25,7 +25,7 @@ parse_escape(Input) ->
 %% Test 1: Escape asterisk
 escape_asterisk_test() ->
     {ok, T1} = parse_escape(<<"\\*">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should have character_escape events
     EscapeEvents = [E || E <- Events, E#event.name =:= character_escape],
@@ -42,7 +42,7 @@ escape_asterisk_test() ->
 %% Test 2: Escape backslash
 escape_backslash_test() ->
     {ok, T1} = parse_escape(<<"\\\\">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     EscapeEvents = [E || E <- Events, E#event.name =:= character_escape],
     ?assertEqual(2, length(EscapeEvents)).
@@ -50,7 +50,7 @@ escape_backslash_test() ->
 %% Test 3: Escape brackets
 escape_brackets_test() ->
     {ok, T1} = parse_escape(<<"\\[">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     EscapeEvents = [E || E <- Events, E#event.name =:= character_escape],
     ?assertEqual(2, length(EscapeEvents)).
@@ -58,7 +58,7 @@ escape_brackets_test() ->
 %% Test 4: Escape parentheses
 escape_parentheses_test() ->
     {ok, T1} = parse_escape(<<"\\(">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     EscapeEvents = [E || E <- Events, E#event.name =:= character_escape],
     ?assertEqual(2, length(EscapeEvents)).
@@ -74,7 +74,7 @@ all_punctuation_test() ->
     lists:foreach(fun(Char) ->
         Input = list_to_binary([$\\, Char]),
         {ok, T} = parse_escape(Input),
-        Events = lists:reverse(erlmd_tokenizer:get_events(T)),
+        Events = lists:reverse(erlmd_tokeniser:get_events(T)),
         EscapeEvents = [E || E <- Events, E#event.name =:= character_escape],
         ?assertEqual(2, length(EscapeEvents))
     end, Punctuation).
@@ -135,7 +135,7 @@ commonmark_299_test() ->
 %% (This would be tested in integration, just verify escape works)
 commonmark_300_test() ->
     {ok, T1} = parse_escape(<<"\\*">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     EscapeEvents = [E || E <- Events, E#event.name =:= character_escape],
     ?assertEqual(2, length(EscapeEvents)).
 
@@ -168,6 +168,6 @@ backslash_tab_test() ->
 first_escape_only_test() ->
     %% \\* should parse as one escape (\\), leaving * unconsumed
     {ok, T1} = parse_escape(<<"\\\\">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     EscapeEvents = [E || E <- Events, E#event.name =:= character_escape],
     ?assertEqual(2, length(EscapeEvents)).

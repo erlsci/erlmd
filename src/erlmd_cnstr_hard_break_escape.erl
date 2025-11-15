@@ -17,7 +17,6 @@
 -export([start/1, after_escape/1]).
 
 -include("types.hrl").
--include("tokenizer_internal.hrl").
 
 %%%=============================================================================
 %%% State Functions
@@ -25,10 +24,10 @@
 
 %% @doc Entry point - checks for backslash
 start(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         $\\ ->
-            T1 = erlmd_tokenizer:enter(T, hard_break_escape),
-            T2 = erlmd_tokenizer:consume(T1),
+            T1 = erlmd_tokeniser:enter(T, hard_break_escape),
+            T2 = erlmd_tokeniser:consume(T1),
             {{next, hard_break_escape_after}, T2};
         _ ->
             {nok, T}
@@ -36,10 +35,10 @@ start(T) ->
 
 %% @doc After backslash - checks for line ending
 after_escape(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         $\n ->
             %% Line ending after backslash - this is a hard break
-            T1 = erlmd_tokenizer:exit(T, hard_break_escape),
+            T1 = erlmd_tokeniser:exit(T, hard_break_escape),
             {ok, T1};
         eof ->
             %% Backslash at EOF - not a hard break

@@ -12,7 +12,7 @@
 %%%=============================================================================
 
 parse_flow(Input) ->
-    T = erlmd_tokenizer:new(Input, #{}),
+    T = erlmd_tokeniser:new(Input, #{}),
     erlmd_cnstr_flow:start(T).
 
 %%%=============================================================================
@@ -29,7 +29,7 @@ blank_line_test() ->
 %% Test 2: Non-blank content should try paragraph (fallback)
 paragraph_fallback_test() ->
     {Result, T1} = parse_flow(<<"hello">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should try all constructs and reach paragraph last
     %% Paragraph is now implemented in Phase 5, so should succeed

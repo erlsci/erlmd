@@ -30,7 +30,7 @@ parse_paragraph(Input) ->
 %% Test 1: Simple single-line paragraph
 simple_paragraph_test() ->
     {Result, T1} = parse_paragraph(<<"Hello world">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should succeed
     ?assertEqual(ok, Result),
@@ -43,7 +43,7 @@ simple_paragraph_test() ->
 %% Test 2: Multi-line paragraph (no blank line)
 multiline_paragraph_test() ->
     {Result, T1} = parse_paragraph(<<"Line 1\nLine 2">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should succeed
     ?assertEqual(ok, Result),
@@ -59,7 +59,7 @@ multiline_paragraph_test() ->
 %% Test 3: Paragraph at EOF (no trailing newline)
 paragraph_at_eof_test() ->
     {Result, T1} = parse_paragraph(<<"Single line">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     ParagraphEvents = [E || E <- Events, E#event.name =:= paragraph],
@@ -78,7 +78,7 @@ just_newline_test() ->
 %% Test 6: Three-line paragraph
 three_lines_test() ->
     {Result, T1} = parse_paragraph(<<"Line 1\nLine 2\nLine 3">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
 
@@ -93,18 +93,18 @@ three_lines_test() ->
 %% Test 7: Paragraph ending with blank line
 with_trailing_blank_test() ->
     {Result, T1} = parse_paragraph(<<"Text\n\n">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should stop at first newline (before blank line)
     ?assertEqual(ok, Result),
 
     %% Current position should be at second newline
-    ?assertEqual($\n, erlmd_tokenizer:current(T1)).
+    ?assertEqual($\n, erlmd_tokeniser:current(T1)).
 
 %% Test 8: Single character paragraph
 single_char_test() ->
     {Result, T1} = parse_paragraph(<<"a">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     ParagraphEvents = [E || E <- Events, E#event.name =:= paragraph],
@@ -119,7 +119,7 @@ with_spaces_test() ->
 long_paragraph_test() ->
     LongText = binary:copy(<<"word ">>, 100),
     {Result, T1} = parse_paragraph(LongText),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     ?assertEqual(ok, Result),
     ParagraphEvents = [E || E <- Events, E#event.name =:= paragraph],

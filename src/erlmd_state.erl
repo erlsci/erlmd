@@ -20,8 +20,8 @@
 %%% API Functions
 %%%=============================================================================
 
--spec call(atom(), erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec call(atom(), erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Dispatch to a state function by name.
 %%
 %% This is THE central dispatch point for all state transitions.

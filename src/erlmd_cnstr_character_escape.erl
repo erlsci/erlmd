@@ -16,7 +16,6 @@
 -export([start/1, inside/1]).
 
 -include("types.hrl").
--include("tokenizer_internal.hrl").
 
 %%%=============================================================================
 %%% State Functions
@@ -24,12 +23,12 @@
 
 %% @doc Entry point - checks for backslash
 start(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         $\\ ->
-            T1 = erlmd_tokenizer:enter(T, character_escape),
-            T2 = erlmd_tokenizer:enter(T1, character_escape_marker),
-            T3 = erlmd_tokenizer:consume(T2),
-            T4 = erlmd_tokenizer:exit(T3, character_escape_marker),
+            T1 = erlmd_tokeniser:enter(T, character_escape),
+            T2 = erlmd_tokeniser:enter(T1, character_escape_marker),
+            T3 = erlmd_tokeniser:consume(T2),
+            T4 = erlmd_tokeniser:exit(T3, character_escape_marker),
             {{next, character_escape_inside}, T4};
         _ ->
             {nok, T}
@@ -37,14 +36,14 @@ start(T) ->
 
 %% @doc After backslash - checks for ASCII punctuation
 inside(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         Byte when is_integer(Byte) ->
             case is_ascii_punctuation(Byte) of
                 true ->
-                    T1 = erlmd_tokenizer:enter(T, character_escape_value),
-                    T2 = erlmd_tokenizer:consume(T1),
-                    T3 = erlmd_tokenizer:exit(T2, character_escape_value),
-                    T4 = erlmd_tokenizer:exit(T3, character_escape),
+                    T1 = erlmd_tokeniser:enter(T, character_escape_value),
+                    T2 = erlmd_tokeniser:consume(T1),
+                    T3 = erlmd_tokeniser:exit(T2, character_escape_value),
+                    T4 = erlmd_tokeniser:exit(T3, character_escape),
                     {ok, T4};
                 false ->
                     {nok, T}

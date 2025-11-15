@@ -25,7 +25,7 @@ parse_code(Input) ->
 %% Test 1: Simple code span
 simple_code_test() ->
     {ok, T1} = parse_code(<<"`code`">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should have code_text events
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
@@ -44,7 +44,7 @@ simple_code_test() ->
 %% Test 2: Code span with double backticks
 double_backtick_test() ->
     {ok, T1} = parse_code(<<"``code``">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
@@ -52,7 +52,7 @@ double_backtick_test() ->
 %% Test 3: Code span containing single backtick
 code_with_backtick_test() ->
     {ok, T1} = parse_code(<<"``code ` with``">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
@@ -60,7 +60,7 @@ code_with_backtick_test() ->
 %% Test 4: Triple backticks
 triple_backtick_test() ->
     {ok, T1} = parse_code(<<"```code```">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
@@ -96,7 +96,7 @@ only_backticks_test() ->
 %% Test 9: Code span with line ending
 code_with_newline_test() ->
     {ok, T1} = parse_code(<<"`code\nmore`">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should have code_text events
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
@@ -109,7 +109,7 @@ code_with_newline_test() ->
 %% Test 10: Multiple line endings
 code_with_multiple_newlines_test() ->
     {ok, T1} = parse_code(<<"`code\n\nmore`">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)),
@@ -124,21 +124,21 @@ code_with_multiple_newlines_test() ->
 %% Example 328: Simple code span
 commonmark_328_test() ->
     {ok, T1} = parse_code(<<"`foo`">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
 
 %% Example 329: Code span with backticks inside
 commonmark_329_test() ->
     {ok, T1} = parse_code(<<"`` foo ` bar ``">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
 
 %% Example 330: Single backtick in double backtick span
 commonmark_330_test() ->
     {ok, T1} = parse_code(<<"`` ` ``">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
 
@@ -151,7 +151,7 @@ commonmark_331_test() ->
 %% Example 332: Code span across line
 commonmark_332_test() ->
     {ok, T1} = parse_code(<<"`foo\nbar`">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
 
@@ -166,14 +166,14 @@ commonmark_332_test() ->
 empty_code_test() ->
     %% ` ` = 1 backtick open, space as data, 1 backtick close
     {ok, T1} = parse_code(<<"` `">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
 
 %% Test: Code with spaces
 code_with_spaces_test() ->
     {ok, T1} = parse_code(<<"`  code  `">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).
 
@@ -184,6 +184,6 @@ no_backtick_test() ->
 %% Test: Code at EOF
 code_at_eof_test() ->
     {ok, T1} = parse_code(<<"`code`">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     CodeEvents = [E || E <- Events, E#event.name =:= code_text],
     ?assertEqual(2, length(CodeEvents)).

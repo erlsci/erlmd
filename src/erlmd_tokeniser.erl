@@ -19,11 +19,11 @@
 %%% @end
 %%%-----------------------------------------------------------------------------
 
--module(erlmd_tokenizer).
+-module(erlmd_tokeniser).
 
 -include("types.hrl").
 -include("consts.hrl").
--include("tokenizer_internal.hrl").
+-include("tokeniser.hrl").
 
 %%%=============================================================================
 %%% Types
@@ -87,7 +87,7 @@
 %% Initial state has no events, empty stack, and no current byte.
 %%
 %% Example:
-%%   T = erlmd_tokenizer:new(<<"# Hello">>, #{})
+%%   T = erlmd_tokeniser:new(<<"# Hello">>, #{})
 new(Bytes, Options) when is_binary(Bytes), is_map(Options) ->
     #tokenizer{
         bytes = Bytes,
@@ -299,7 +299,7 @@ check(T, Ok, Nok) ->
 %% 3. Handling the result
 %%
 %% Usage:
-%%   case erlmd_tokenizer:attempt_construct(T, paragraph, nok) of
+%%   case erlmd_tokeniser:attempt_construct(T, paragraph, nok) of
 %%       {ok, T1} -> ... construct succeeded ...
 %%       {nok, T1} -> ... construct failed, state reverted ...
 %%   end

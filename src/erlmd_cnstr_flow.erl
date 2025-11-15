@@ -59,8 +59,8 @@
 %%% API Functions
 %%%=============================================================================
 
--spec start(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec start(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Entry point for flow (block-level) content parsing.
 %%
 %% Tries each block construct in priority order. Blank line is first because
@@ -75,8 +75,8 @@ start(T) ->
 %%% Internal Functions
 %%%=============================================================================
 
--spec try_constructs(erlmd_tokenizer:tokenizer(), [atom()]) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec try_constructs(erlmd_tokeniser:tokenizer(), [atom()]) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Try each construct in order until one succeeds.
 %%
 %% Pattern: attempt construct, return immediately on success.
@@ -89,7 +89,7 @@ try_constructs(T, []) ->
     {nok, T};
 
 try_constructs(T, [Construct | Rest]) ->
-    case erlmd_tokenizer:attempt_construct(T, Construct, nok) of
+    case erlmd_tokeniser:attempt_construct(T, Construct, nok) of
         {ok, T1} ->
             %% Construct succeeded - return immediately
             {ok, T1};

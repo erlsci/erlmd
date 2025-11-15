@@ -12,7 +12,7 @@
 %%%=============================================================================
 
 parse_string(Input) ->
-    T = erlmd_tokenizer:new(Input, #{}),
+    T = erlmd_tokeniser:new(Input, #{}),
     erlmd_cnstr_string:start(T).
 
 %%%=============================================================================
@@ -22,7 +22,7 @@ parse_string(Input) ->
 %% Test 1: Plain text becomes data (fallback)
 plain_text_test() ->
     {Result, T1} = parse_string(<<"hello">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should succeed with data events
     ?assertEqual(ok, Result),
@@ -33,7 +33,7 @@ plain_text_test() ->
 %% Test 2: Empty string
 empty_string_test() ->
     {Result, T1} = parse_string(<<>>),
-    Events = erlmd_tokenizer:get_events(T1),
+    Events = erlmd_tokeniser:get_events(T1),
 
     %% Should succeed with no events or minimal data
     ?assertEqual(ok, Result),

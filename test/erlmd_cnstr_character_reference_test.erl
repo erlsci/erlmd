@@ -25,7 +25,7 @@ parse_ref(Input) ->
 %% Test 1: Simple named reference - amp
 named_amp_test() ->
     {ok, T1} = parse_ref(<<"&amp;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should have character_reference events
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
@@ -36,14 +36,14 @@ named_amp_test() ->
 %% Test 2: Named reference - lt
 named_lt_test() ->
     {ok, T1} = parse_ref(<<"&lt;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
 %% Test 3: Named reference - copy
 named_copy_test() ->
     {ok, T1} = parse_ref(<<"&copy;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
@@ -60,7 +60,7 @@ named_with_numbers_test() ->
 decimal_simple_test() ->
     %% &#35; = #
     {ok, T1} = parse_ref(<<"&#35;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
@@ -68,7 +68,7 @@ decimal_simple_test() ->
 decimal_multi_test() ->
     %% &#169; = ©
     {ok, T1} = parse_ref(<<"&#169;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
@@ -76,7 +76,7 @@ decimal_multi_test() ->
 decimal_emoji_test() ->
     %% &#128169; = 💩
     {ok, T1} = parse_ref(<<"&#128169;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
@@ -88,7 +88,7 @@ decimal_emoji_test() ->
 hex_lowercase_x_test() ->
     %% &#x23; = #
     {ok, T1} = parse_ref(<<"&#x23;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
@@ -96,7 +96,7 @@ hex_lowercase_x_test() ->
 hex_uppercase_x_test() ->
     %% &#X23; = #
     {ok, T1} = parse_ref(<<"&#X23;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
@@ -104,7 +104,7 @@ hex_uppercase_x_test() ->
 hex_lowercase_digits_test() ->
     %% &#xa9; = ©
     {ok, T1} = parse_ref(<<"&#xa9;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
@@ -112,7 +112,7 @@ hex_lowercase_digits_test() ->
 hex_uppercase_digits_test() ->
     %% &#XA9; = ©
     {ok, T1} = parse_ref(<<"&#XA9;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 
@@ -120,7 +120,7 @@ hex_uppercase_digits_test() ->
 hex_emoji_test() ->
     %% &#x1F4A9; = 💩
     {ok, T1} = parse_ref(<<"&#x1F4A9;">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
     RefEvents = [E || E <- Events, E#event.name =:= character_reference],
     ?assertEqual(2, length(RefEvents)).
 

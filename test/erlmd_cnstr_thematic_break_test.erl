@@ -30,7 +30,7 @@ parse_thematic_break(Input) ->
 %% Test 1: Three asterisks
 three_asterisks_test() ->
     {Result, T1} = parse_thematic_break(<<"***">>),
-    Events = lists:reverse(erlmd_tokenizer:get_events(T1)),
+    Events = lists:reverse(erlmd_tokeniser:get_events(T1)),
 
     %% Should succeed
     ?assertEqual(ok, Result),
@@ -101,4 +101,4 @@ with_newline_test() ->
     ?assertEqual(ok, Result),
 
     %% Should have consumed up to (but not including) the newline
-    ?assertEqual($\n, erlmd_tokenizer:current(T1)).
+    ?assertEqual($\n, erlmd_tokeniser:current(T1)).

@@ -20,16 +20,16 @@
 %%% API Functions
 %%%=============================================================================
 
--spec start(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec start(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Entry point for blank line detection.
 %%
 %% A blank line starts with optional whitespace, then ends with EOL or EOF.
 start(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         Byte when Byte =:= $\s; Byte =:= $\t ->
             %% Has whitespace - consume it inline and check what follows
-            T1 = erlmd_tokenizer:consume(T),
+            T1 = erlmd_tokeniser:consume(T),
             {{next, check_after_whitespace}, T1};
         eof ->
             %% EOF - valid blank line
@@ -42,25 +42,25 @@ start(T) ->
             {nok, T}
     end.
 
--spec parse_whitespace(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec parse_whitespace(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Continue parsing whitespace.
 parse_whitespace(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         Byte when Byte =:= $\s; Byte =:= $\t ->
             %% More whitespace - consume and continue
-            T1 = erlmd_tokenizer:consume(T),
+            T1 = erlmd_tokeniser:consume(T),
             {{next, check_after_whitespace}, T1};
         _Other ->
             %% No more whitespace - check what's after
             {{retry, check_after_whitespace}, T}
     end.
 
--spec check_after_whitespace(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec check_after_whitespace(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc After parsing whitespace, check if we have a blank line.
 check_after_whitespace(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         Byte when Byte =:= $\s; Byte =:= $\t ->
             %% More whitespace - continue parsing
             {{retry, parse_whitespace}, T};
@@ -75,13 +75,13 @@ check_after_whitespace(T) ->
             {nok, T}
     end.
 
--spec after_whitespace(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec after_whitespace(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Called after consuming optional whitespace.
 %%
 %% Now we must be at EOL or EOF for this to be a blank line.
 after_whitespace(T) ->
-    case erlmd_tokenizer:current(T) of
+    case erlmd_tokeniser:current(T) of
         eof ->
             %% EOF - blank line confirmed
             {ok, T};

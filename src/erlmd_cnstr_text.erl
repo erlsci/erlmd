@@ -61,8 +61,8 @@
 %%% API Functions
 %%%=============================================================================
 
--spec start(erlmd_tokenizer:tokenizer()) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec start(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Entry point for text (inline) content parsing.
 %%
 %% Tries each inline construct in priority order. GFM and MDX constructs
@@ -74,18 +74,18 @@ start(T) ->
 %%% Internal Functions
 %%%=============================================================================
 
--spec try_constructs(erlmd_tokenizer:tokenizer(), [atom()]) ->
-    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+-spec try_constructs(erlmd_tokeniser:tokenizer(), [atom()]) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Try each construct in order until one succeeds.
 %%
 %% Pattern: attempt construct, on success continue with text, on failure try next.
 %% This is tail-recursive and preserves binary match context.
 try_constructs(T, []) ->
     %% No constructs succeeded, try data as ultimate fallback
-    erlmd_tokenizer:attempt_construct(T, data, nok);
+    erlmd_tokeniser:attempt_construct(T, data, nok);
 
 try_constructs(T, [Construct | Rest]) ->
-    case erlmd_tokenizer:attempt_construct(T, Construct, nok) of
+    case erlmd_tokeniser:attempt_construct(T, Construct, nok) of
         {ok, T1} ->
             %% Construct succeeded, continue parsing text content
             start(T1);
