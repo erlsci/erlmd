@@ -21,8 +21,8 @@ Files to upload to Claude for planning:
 * docs/design-v1.3/006-rust-api-metadata.md
 * docs/design-v1.3/007-erlmd-library-rewrite.md
 * docs/design-v1.3/008-implementation-plan/erlmd-implementation-plan.md
-* docs/design-v1.3/008-implementation-plan/erlmd-module-dependencies.md
 * docs/design-v1.3/008-implementation-plan/erlmd-ai-prompt-quick-reference.md
+* docs/design-v1.3/012.3-naming-quick-reference.md
 
 To Claude:
 
@@ -33,6 +33,8 @@ We are now working on Phase NNN of the implementation plan. I need you to create
 In it, you will write highly detailed implementation instructions for Claude Code using the template defined in `docs/design-v1.3/008-implementation-plan/erlmd-ai-prompt-quick-reference.md`. 
 
 Once you figure out exactly what we're going to be working on, reference `docs/design-v1.3/005-rust-src-files.txt` and `docs/design-v1.3/006-rust-api-metadata.md` to determine which Rust source files you need me to provide, then ask me for those and I will attach them.
+
+During implementation, you must used the naming conventions laid out in `docs/design-v1.3/012.3-naming-quick-reference.md`.
 
 When you have all the files you need, use the template mentioned above to create the implementation plan .md artefact.
 
