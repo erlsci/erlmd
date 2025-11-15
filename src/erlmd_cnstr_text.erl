@@ -68,7 +68,15 @@
 %% Tries each inline construct in priority order. GFM and MDX constructs
 %% will fail gracefully if not implemented. Falls back to data for literal text.
 start(T) ->
-    try_constructs(T, ?TEXT_CONSTRUCTS).
+    %% Text parsing terminates at EOF or line endings
+    case erlmd_tokeniser:current(T) of
+        eof ->
+            {ok, T};
+        $\n ->
+            {ok, T};
+        _ ->
+            try_constructs(T, ?TEXT_CONSTRUCTS)
+    end.
 
 %%%=============================================================================
 %%% Internal Functions
@@ -82,14 +90,29 @@ start(T) ->
 %% This is tail-recursive and preserves binary match context.
 try_constructs(T, []) ->
     %% No constructs succeeded, try data as ultimate fallback
-    erlmd_tokeniser:attempt_construct(T, data, nok);
+    case erlmd_tokeniser:attempt_construct(T, data, nok) of
+        {ok, T1} ->
+            %% Data succeeded, continue parsing
+            start(T1);
+        {nok, T1} ->
+            %% Data also failed
+            {nok, T1}
+    end;
 
 try_constructs(T, [Construct | Rest]) ->
+    %% DEBUG
+    Curr = erlmd_tokeniser:current(T),
+    if Curr =:= $] -> io:format("  Trying ~p at ]~n", [Construct]); true -> ok end,
+
     case erlmd_tokeniser:attempt_construct(T, Construct, nok) of
         {ok, T1} ->
+            %% DEBUG
+            if Curr =:= $] -> io:format("  -> ~p succeeded!~n", [Construct]); true -> ok end,
             %% Construct succeeded, continue parsing text content
             start(T1);
         {nok, T1} ->
+            %% DEBUG
+            if Curr =:= $] -> io:format("  -> ~p failed~n", [Construct]); true -> ok end,
             %% Construct failed, try next in list
             try_constructs(T1, Rest)
     end.

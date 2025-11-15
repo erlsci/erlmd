@@ -148,6 +148,55 @@
 -type message() :: #message{}.
 
 %%%=============================================================================
+%%% Label Structures (Phase 7: Links, Images)
+%%%=============================================================================
+
+%% Label start - marks opening [ or ![
+-record(label_start, {
+    kind :: link | image | gfm_footnote | gfm_undefined_footnote,
+    start :: {non_neg_integer(), non_neg_integer()}, % Event index range
+    inactive = false :: boolean()  % True if inside another link
+}).
+
+-type label_start() :: #label_start{}.
+
+%% Label - matched pair of start and end
+-record(label, {
+    kind :: link | image | gfm_footnote | gfm_undefined_footnote,
+    start :: {non_neg_integer(), non_neg_integer()}, % Event index range for start
+    'end' :: {non_neg_integer(), non_neg_integer()}  % Event index range for end
+}).
+
+-type label() :: #label{}.
+
+%% Definition - link reference definition
+-record(definition, {
+    id :: binary(),              % Normalized identifier
+    destination :: binary(),      % URL
+    title = undefined :: binary() | undefined  % Optional title
+}).
+
+-type definition() :: #definition{}.
+
+%%%=============================================================================
+%%% Attention Structures (Phase 7: Emphasis, Strong)
+%%%=============================================================================
+
+%% Attention sequence - potential emphasis/strong delimiter
+-record(attention_sequence, {
+    marker :: byte(),                    % $* or $_
+    index :: non_neg_integer(),          % Sequence index
+    start_point :: point(),              % Start position
+    end_point :: point(),                % End position
+    size :: non_neg_integer(),           % Number of markers
+    open :: boolean(),                   % Can open emphasis/strong
+    close :: boolean(),                  % Can close emphasis/strong
+    balance :: [non_neg_integer()]       % Stack depth for balance checking
+}).
+
+-type attention_sequence() :: #attention_sequence{}.
+
+%%%=============================================================================
 %%% Type guards (for runtime checks)
 %%%=============================================================================
 
@@ -157,5 +206,9 @@
 -define(is_event(E), is_record(E, event)).
 -define(is_link(L), is_record(L, link)).
 -define(is_message(M), is_record(M, message)).
+-define(is_label_start(L), is_record(L, label_start)).
+-define(is_label(L), is_record(L, label)).
+-define(is_definition(D), is_record(D, definition)).
+-define(is_attention_sequence(A), is_record(A, attention_sequence)).
 
 -endif. % ERLMD_TYPES_HRL

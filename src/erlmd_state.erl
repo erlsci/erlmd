@@ -69,6 +69,12 @@ call(StateName, Tokenizer) ->
         space_or_tab_inside -> erlmd_cnstr_prtl_space_or_tab:inside(Tokenizer);
         space_or_tab_after -> erlmd_cnstr_prtl_space_or_tab:after_space_or_tab(Tokenizer);
 
+        %% Space or tab with EOL construct (partial)
+        space_or_tab_eol -> erlmd_cnstr_prtl_space_or_tab_eol:start(Tokenizer);
+        space_or_tab_eol_start -> erlmd_cnstr_prtl_space_or_tab_eol:start(Tokenizer);
+        space_or_tab_eol_inside -> erlmd_cnstr_prtl_space_or_tab_eol:inside(Tokenizer);
+        space_or_tab_eol_after -> erlmd_cnstr_prtl_space_or_tab_eol:after_whitespace(Tokenizer);
+
         %%=====================================================================
         %% Stub Handlers for Unimplemented Constructs
         %%=====================================================================
@@ -94,6 +100,35 @@ call(StateName, Tokenizer) ->
         code_text_between -> erlmd_cnstr_code_text:between(Tokenizer);
         code_text_data -> erlmd_cnstr_code_text:data(Tokenizer);
         code_text_sequence_close -> erlmd_cnstr_code_text:sequence_close(Tokenizer);
+
+        %% Label start image states (Phase 7)
+        label_start_image_open -> erlmd_cnstr_label_start_image:open(Tokenizer);
+        label_start_image_after_open -> erlmd_cnstr_label_start_image:after_open(Tokenizer);
+
+        %% Partial label states (Phase 7)
+        prtl_label_start -> erlmd_cnstr_prtl_label:start(Tokenizer);
+        prtl_label_at_break -> erlmd_cnstr_prtl_label:at_break(Tokenizer);
+        prtl_label_inside -> erlmd_cnstr_prtl_label:label_inside(Tokenizer);
+        prtl_label_escape -> erlmd_cnstr_prtl_label:label_escape(Tokenizer);
+        prtl_label_eol_after -> erlmd_cnstr_prtl_label:eol_after(Tokenizer);
+        prtl_label_nok -> erlmd_cnstr_prtl_label:label_nok(Tokenizer);
+
+        %% Partial destination states (Phase 7)
+        prtl_destination_start -> erlmd_cnstr_prtl_destination:start(Tokenizer);
+        prtl_destination_enclosed_before -> erlmd_cnstr_prtl_destination:enclosed_before(Tokenizer);
+        prtl_destination_enclosed -> erlmd_cnstr_prtl_destination:enclosed(Tokenizer);
+        prtl_destination_enclosed_escape -> erlmd_cnstr_prtl_destination:enclosed_escape(Tokenizer);
+        prtl_destination_raw -> erlmd_cnstr_prtl_destination:raw(Tokenizer);
+        prtl_destination_raw_escape -> erlmd_cnstr_prtl_destination:raw_escape(Tokenizer);
+
+        %% Partial title states (Phase 7)
+        prtl_title_start -> erlmd_cnstr_prtl_title:start(Tokenizer);
+        prtl_title_begin -> erlmd_cnstr_prtl_title:title_begin(Tokenizer);
+        prtl_title_at_break -> erlmd_cnstr_prtl_title:title_at_break(Tokenizer);
+        prtl_title_inside -> erlmd_cnstr_prtl_title:title_inside(Tokenizer);
+        prtl_title_escape -> erlmd_cnstr_prtl_title:title_escape(Tokenizer);
+        prtl_title_after_eol -> erlmd_cnstr_prtl_title:title_after_eol(Tokenizer);
+        prtl_title_nok -> erlmd_cnstr_prtl_title:title_nok(Tokenizer);
 
         %% Character reference (implemented in Phase 6)
         character_reference -> erlmd_cnstr_character_reference:start(Tokenizer);
@@ -137,9 +172,31 @@ call(StateName, Tokenizer) ->
         definition -> stub_nok(definition, Tokenizer);
 
         %% Inline constructs (Phase 6+)
-        label_start_image -> stub_nok(label_start_image, Tokenizer);
-        label_start_link -> stub_nok(label_start_link, Tokenizer);
-        label_end -> stub_nok(label_end, Tokenizer);
+        label_start_image -> erlmd_cnstr_label_start_image:start(Tokenizer);
+        label_start_link -> erlmd_cnstr_label_start_link:start(Tokenizer);
+
+        %% Label end states (Phase 7.4 + 7.5)
+        label_end -> erlmd_cnstr_label_end:start(Tokenizer);
+        label_end_after_marker -> erlmd_cnstr_label_end:after_marker(Tokenizer);
+        label_end_ok -> erlmd_cnstr_label_end:label_end_ok(Tokenizer);
+        label_end_nok -> erlmd_cnstr_label_end:label_end_nok(Tokenizer);
+
+        %% Resource parsing (Phase 7.4)
+        label_end_resource_start -> erlmd_cnstr_label_end:resource_start(Tokenizer);
+        label_end_resource_before -> erlmd_cnstr_label_end:resource_before(Tokenizer);
+        label_end_resource_open -> erlmd_cnstr_label_end:resource_open(Tokenizer);
+        label_end_resource_destination_after -> erlmd_cnstr_label_end:resource_destination_after(Tokenizer);
+        label_end_resource_destination_missing -> erlmd_cnstr_label_end:resource_destination_missing(Tokenizer);
+        label_end_resource_between -> erlmd_cnstr_label_end:resource_between(Tokenizer);
+        label_end_resource_title_after -> erlmd_cnstr_label_end:resource_title_after(Tokenizer);
+        label_end_resource_end -> erlmd_cnstr_label_end:resource_end(Tokenizer);
+
+        %% Reference parsing (Phase 7.5)
+        label_end_reference_full_start -> erlmd_cnstr_label_end:reference_full_start(Tokenizer);
+        label_end_reference_full_open -> erlmd_cnstr_label_end:reference_full_open(Tokenizer);
+        label_end_reference_full_after -> erlmd_cnstr_label_end:reference_full_after(Tokenizer);
+        label_end_reference_collapsed_start -> erlmd_cnstr_label_end:reference_collapsed_start(Tokenizer);
+        label_end_reference_shortcut -> erlmd_cnstr_label_end:reference_shortcut(Tokenizer);
         raw_text -> stub_nok(raw_text, Tokenizer);
         attention -> stub_nok(attention, Tokenizer);
         autolink -> stub_nok(autolink, Tokenizer);

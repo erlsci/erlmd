@@ -73,7 +73,50 @@
     set_state/3,
     clear_state/2,
     get_markers/1,
-    set_markers/2
+    set_markers/2,
+
+    %% Phase 7: Label tracking
+    add_label_start/2,
+    pop_label_start/1,
+    has_label_starts/1,
+    peek_label_start/1,
+    add_loose_label_start/2,
+    add_label/2,
+    get_labels/1,
+    clear_labels/1,
+    clear_label_starts/1,
+    clear_loose_label_starts/1,
+    mark_link_starts_inactive/1,
+
+    %% Phase 7: Definitions
+    has_definition/2,
+    get_definition/2,
+
+    %% Phase 7: State fields
+    event_count/1,
+    set_end_index/2,
+    get_end_index/1,
+    set_label_size/2,
+    get_label_size/1,
+    inc_label_size/1,
+    set_label_seen_char/2,
+    get_label_seen_char/1,
+    set_paren_depth/2,
+    get_paren_depth/1,
+    inc_paren_depth/1,
+    dec_paren_depth/1,
+    set_marker/2,
+    get_marker/1,
+    set_token_names/6,
+    get_token_1/1,
+    get_token_2/1,
+    get_token_3/1,
+    get_token_4/1,
+    get_token_5/1,
+
+    %% Phase 7: Resolvers
+    register_resolver/2,
+    register_resolver_before/2
 ]).
 
 %%%=============================================================================
@@ -476,6 +519,202 @@ set_markers(#tokenizer{parse_state = State} = T, Markers) ->
     T#tokenizer{parse_state = maps:put(markers, Markers, State)}.
 
 %%%=============================================================================
+%%% Helper Functions - Phase 7: Label Tracking
+%%%=============================================================================
+
+-spec add_label_start(tokenizer(), label_start()) -> tokenizer().
+%% @doc Add a label start to the active list.
+add_label_start(#tokenizer{label_starts = Starts} = T, LabelStart) ->
+    T#tokenizer{label_starts = [LabelStart | Starts]}.
+
+-spec pop_label_start(tokenizer()) -> {label_start(), tokenizer()}.
+%% @doc Remove and return the most recent label start.
+pop_label_start(#tokenizer{label_starts = [Start | Rest]} = T) ->
+    {Start, T#tokenizer{label_starts = Rest}};
+pop_label_start(#tokenizer{label_starts = []}) ->
+    error(no_label_starts).
+
+-spec has_label_starts(tokenizer()) -> boolean().
+%% @doc Check if there are any active label starts.
+has_label_starts(#tokenizer{label_starts = []}) -> false;
+has_label_starts(#tokenizer{label_starts = [_|_]}) -> true.
+
+-spec peek_label_start(tokenizer()) -> label_start().
+%% @doc Get the most recent label start without removing it.
+peek_label_start(#tokenizer{label_starts = [Start | _]}) ->
+    Start;
+peek_label_start(#tokenizer{label_starts = []}) ->
+    error(no_label_starts).
+
+-spec add_loose_label_start(tokenizer(), label_start()) -> tokenizer().
+%% @doc Add a failed label start to the loose list.
+add_loose_label_start(#tokenizer{label_starts_loose = Loose} = T, LabelStart) ->
+    T#tokenizer{label_starts_loose = [LabelStart | Loose]}.
+
+-spec add_label(tokenizer(), label()) -> tokenizer().
+%% @doc Add a matched label to the list.
+add_label(#tokenizer{labels = Labels} = T, Label) ->
+    T#tokenizer{labels = [Label | Labels]}.
+
+-spec get_labels(tokenizer()) -> [label()].
+%% @doc Get all matched labels.
+get_labels(#tokenizer{labels = Labels}) ->
+    Labels.
+
+-spec clear_labels(tokenizer()) -> tokenizer().
+%% @doc Clear all matched labels.
+clear_labels(T) ->
+    T#tokenizer{labels = []}.
+
+-spec clear_label_starts(tokenizer()) -> tokenizer().
+%% @doc Clear all active label starts.
+clear_label_starts(T) ->
+    T#tokenizer{label_starts = []}.
+
+-spec clear_loose_label_starts(tokenizer()) -> tokenizer().
+%% @doc Clear all loose label starts.
+clear_loose_label_starts(T) ->
+    T#tokenizer{label_starts_loose = []}.
+
+-spec mark_link_starts_inactive(tokenizer()) -> tokenizer().
+%% @doc Mark all earlier link starts as inactive (prevents nested links).
+mark_link_starts_inactive(#tokenizer{label_starts = Starts} = T) ->
+    InactiveStarts = [S#label_start{inactive = true} || S <- Starts],
+    T#tokenizer{label_starts = InactiveStarts}.
+
+%%%=============================================================================
+%%% Helper Functions - Phase 7: Definitions
+%%%=============================================================================
+
+-spec has_definition(tokenizer(), binary()) -> boolean().
+%% @doc Check if a definition exists in parse_state.
+has_definition(#tokenizer{parse_state = State}, Id) ->
+    Defs = maps:get(definitions, State, #{}),
+    maps:is_key(Id, Defs).
+
+-spec get_definition(tokenizer(), binary()) -> definition() | undefined.
+%% @doc Get a definition from parse_state.
+get_definition(#tokenizer{parse_state = State}, Id) ->
+    Defs = maps:get(definitions, State, #{}),
+    maps:get(Id, Defs, undefined).
+
+%%%=============================================================================
+%%% Helper Functions - Phase 7: State Fields
+%%%=============================================================================
+
+-spec event_count(tokenizer()) -> non_neg_integer().
+%% @doc Get the current event count.
+event_count(#tokenizer{events = Events}) ->
+    length(Events).
+
+-spec set_end_index(tokenizer(), non_neg_integer()) -> tokenizer().
+%% @doc Set the temporary end index.
+set_end_index(T, Index) ->
+    T#tokenizer{end_index = Index}.
+
+-spec get_end_index(tokenizer()) -> non_neg_integer().
+%% @doc Get the temporary end index.
+get_end_index(#tokenizer{end_index = Index}) ->
+    Index.
+
+-spec set_label_size(tokenizer(), non_neg_integer()) -> tokenizer().
+%% @doc Set the current label size.
+set_label_size(T, Size) ->
+    T#tokenizer{label_size = Size}.
+
+-spec get_label_size(tokenizer()) -> non_neg_integer().
+%% @doc Get the current label size.
+get_label_size(#tokenizer{label_size = Size}) ->
+    Size.
+
+-spec inc_label_size(tokenizer()) -> tokenizer().
+%% @doc Increment the label size.
+inc_label_size(#tokenizer{label_size = Size} = T) ->
+    T#tokenizer{label_size = Size + 1}.
+
+-spec set_label_seen_char(tokenizer(), boolean()) -> tokenizer().
+%% @doc Set whether we've seen a non-whitespace character in the label.
+set_label_seen_char(T, Seen) ->
+    T#tokenizer{label_seen_char = Seen}.
+
+-spec get_label_seen_char(tokenizer()) -> boolean().
+%% @doc Get whether we've seen a non-whitespace character.
+get_label_seen_char(#tokenizer{label_seen_char = Seen}) ->
+    Seen.
+
+-spec set_paren_depth(tokenizer(), non_neg_integer()) -> tokenizer().
+%% @doc Set the parenthesis depth.
+set_paren_depth(T, Depth) ->
+    T#tokenizer{paren_depth = Depth}.
+
+-spec get_paren_depth(tokenizer()) -> non_neg_integer().
+%% @doc Get the parenthesis depth.
+get_paren_depth(#tokenizer{paren_depth = Depth}) ->
+    Depth.
+
+-spec inc_paren_depth(tokenizer()) -> tokenizer().
+%% @doc Increment the parenthesis depth.
+inc_paren_depth(#tokenizer{paren_depth = Depth} = T) ->
+    T#tokenizer{paren_depth = Depth + 1}.
+
+-spec dec_paren_depth(tokenizer()) -> tokenizer().
+%% @doc Decrement the parenthesis depth.
+dec_paren_depth(#tokenizer{paren_depth = Depth} = T) ->
+    T#tokenizer{paren_depth = Depth - 1}.
+
+-spec set_marker(tokenizer(), byte() | non_neg_integer()) -> tokenizer().
+%% @doc Set the current marker character.
+set_marker(T, Marker) ->
+    T#tokenizer{marker = Marker}.
+
+-spec get_marker(tokenizer()) -> byte() | non_neg_integer().
+%% @doc Get the current marker character.
+get_marker(#tokenizer{marker = Marker}) ->
+    Marker.
+
+-spec set_token_names(tokenizer(), atom() | undefined, atom() | undefined,
+                      atom() | undefined, atom() | undefined,
+                      atom() | undefined) -> tokenizer().
+%% @doc Set the token names for partial constructs.
+set_token_names(T, T1, T2, T3, T4, T5) ->
+    T#tokenizer{
+        token_1 = T1,
+        token_2 = T2,
+        token_3 = T3,
+        token_4 = T4,
+        token_5 = T5
+    }.
+
+-spec get_token_1(tokenizer()) -> atom() | undefined.
+get_token_1(#tokenizer{token_1 = T1}) -> T1.
+
+-spec get_token_2(tokenizer()) -> atom() | undefined.
+get_token_2(#tokenizer{token_2 = T2}) -> T2.
+
+-spec get_token_3(tokenizer()) -> atom() | undefined.
+get_token_3(#tokenizer{token_3 = T3}) -> T3.
+
+-spec get_token_4(tokenizer()) -> atom() | undefined.
+get_token_4(#tokenizer{token_4 = T4}) -> T4.
+
+-spec get_token_5(tokenizer()) -> atom() | undefined.
+get_token_5(#tokenizer{token_5 = T5}) -> T5.
+
+%%%=============================================================================
+%%% Helper Functions - Phase 7: Resolvers
+%%%=============================================================================
+
+-spec register_resolver(tokenizer(), atom()) -> tokenizer().
+%% @doc Register a resolver to run at the end of parsing.
+register_resolver(#tokenizer{resolvers = Resolvers} = T, Resolver) ->
+    T#tokenizer{resolvers = [Resolver | Resolvers]}.
+
+-spec register_resolver_before(tokenizer(), atom()) -> tokenizer().
+%% @doc Register a resolver to run before other resolvers.
+register_resolver_before(#tokenizer{resolver_before = Resolvers} = T, Resolver) ->
+    T#tokenizer{resolver_before = [Resolver | Resolvers]}.
+
+%%%=============================================================================
 %%% Internal Functions - Consumption Helpers
 %%%=============================================================================
 
@@ -577,7 +816,24 @@ capture_progress(T) ->
         index = T#tokenizer.index,
         line = T#tokenizer.line,
         column = T#tokenizer.column,
-        vs = T#tokenizer.vs
+        vs = T#tokenizer.vs,
+
+        %% Phase 7 fields
+        label_starts_len = length(T#tokenizer.label_starts),
+        label_starts_loose_len = length(T#tokenizer.label_starts_loose),
+        labels_len = length(T#tokenizer.labels),
+        end_index = T#tokenizer.end_index,
+        label_size = T#tokenizer.label_size,
+        label_seen_char = T#tokenizer.label_seen_char,
+        paren_depth = T#tokenizer.paren_depth,
+        marker = T#tokenizer.marker,
+        token_1 = T#tokenizer.token_1,
+        token_2 = T#tokenizer.token_2,
+        token_3 = T#tokenizer.token_3,
+        token_4 = T#tokenizer.token_4,
+        token_5 = T#tokenizer.token_5,
+        resolvers_len = length(T#tokenizer.resolvers),
+        resolver_before_len = length(T#tokenizer.resolver_before)
     }.
 
 %% @private
@@ -598,6 +854,37 @@ restore_progress(T, P) ->
         M when M > 0 -> lists:nthtail(M, T#tokenizer.stack)
     end,
 
+    %% Phase 7: Truncate label tracking lists
+    LabelStartsToRemove = length(T#tokenizer.label_starts) - P#progress.label_starts_len,
+    LabelStarts = case LabelStartsToRemove of
+        0 -> T#tokenizer.label_starts;
+        L when L > 0 -> lists:nthtail(L, T#tokenizer.label_starts)
+    end,
+
+    LabelStartsLooseToRemove = length(T#tokenizer.label_starts_loose) - P#progress.label_starts_loose_len,
+    LabelStartsLoose = case LabelStartsLooseToRemove of
+        0 -> T#tokenizer.label_starts_loose;
+        LL when LL > 0 -> lists:nthtail(LL, T#tokenizer.label_starts_loose)
+    end,
+
+    LabelsToRemove = length(T#tokenizer.labels) - P#progress.labels_len,
+    Labels = case LabelsToRemove of
+        0 -> T#tokenizer.labels;
+        La when La > 0 -> lists:nthtail(La, T#tokenizer.labels)
+    end,
+
+    ResolversToRemove = length(T#tokenizer.resolvers) - P#progress.resolvers_len,
+    Resolvers = case ResolversToRemove of
+        0 -> T#tokenizer.resolvers;
+        R when R > 0 -> lists:nthtail(R, T#tokenizer.resolvers)
+    end,
+
+    ResolverBeforeToRemove = length(T#tokenizer.resolver_before) - P#progress.resolver_before_len,
+    ResolverBefore = case ResolverBeforeToRemove of
+        0 -> T#tokenizer.resolver_before;
+        RB when RB > 0 -> lists:nthtail(RB, T#tokenizer.resolver_before)
+    end,
+
     T#tokenizer{
         events = Events,
         stack = Stack,
@@ -607,7 +894,24 @@ restore_progress(T, P) ->
         index = P#progress.index,
         line = P#progress.line,
         column = P#progress.column,
-        vs = P#progress.vs
+        vs = P#progress.vs,
+
+        %% Phase 7 fields
+        label_starts = LabelStarts,
+        label_starts_loose = LabelStartsLoose,
+        labels = Labels,
+        end_index = P#progress.end_index,
+        label_size = P#progress.label_size,
+        label_seen_char = P#progress.label_seen_char,
+        paren_depth = P#progress.paren_depth,
+        marker = P#progress.marker,
+        token_1 = P#progress.token_1,
+        token_2 = P#progress.token_2,
+        token_3 = P#progress.token_3,
+        token_4 = P#progress.token_4,
+        token_5 = P#progress.token_5,
+        resolvers = Resolvers,
+        resolver_before = ResolverBefore
     }.
 
 %%%=============================================================================
