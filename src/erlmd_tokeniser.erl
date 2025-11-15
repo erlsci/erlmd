@@ -116,7 +116,8 @@
 
     %% Phase 7: Resolvers
     register_resolver/2,
-    register_resolver_before/2
+    register_resolver_before/2,
+    run_resolvers/1
 ]).
 
 %%%=============================================================================
@@ -713,6 +714,35 @@ register_resolver(#tokenizer{resolvers = Resolvers} = T, Resolver) ->
 %% @doc Register a resolver to run before other resolvers.
 register_resolver_before(#tokenizer{resolver_before = Resolvers} = T, Resolver) ->
     T#tokenizer{resolver_before = [Resolver | Resolvers]}.
+
+-spec run_resolvers(tokenizer()) -> tokenizer().
+%% @doc Run all registered resolvers.
+%%
+%% Runs resolvers in order:
+%% 1. resolver_before list (in reverse registration order)
+%% 2. resolvers list (in reverse registration order)
+%%
+%% Each resolver is a module name that must export resolve/1.
+run_resolvers(T) ->
+    %% Run before resolvers first
+    BeforeResolvers = lists:reverse(T#tokenizer.resolver_before),
+    T1 = lists:foldl(fun run_resolver/2, T, BeforeResolvers),
+
+    %% Then run regular resolvers
+    Resolvers = lists:reverse(T#tokenizer.resolvers),
+    T2 = lists:foldl(fun run_resolver/2, T1, Resolvers),
+
+    T2.
+
+%% @private
+%% Run a single resolver
+run_resolver(ResolverName, T) ->
+    %% Convert resolver name to module name
+    %% e.g., label -> erlmd_resolver_label
+    ModuleName = list_to_atom("erlmd_resolver_" ++ atom_to_list(ResolverName)),
+
+    %% Call the resolver's resolve/1 function
+    ModuleName:resolve(T).
 
 %%%=============================================================================
 %%% Internal Functions - Consumption Helpers

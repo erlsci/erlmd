@@ -196,7 +196,8 @@ call(StateName, Tokenizer) ->
         label_end_reference_collapsed_start -> erlmd_cnstr_label_end:reference_collapsed_start(Tokenizer);
         label_end_reference_shortcut -> erlmd_cnstr_label_end:reference_shortcut(Tokenizer);
         raw_text -> stub_nok(raw_text, Tokenizer);
-        attention -> stub_nok(attention, Tokenizer);
+        attention -> erlmd_cnstr_attention:start(Tokenizer);
+        attention_inside -> erlmd_cnstr_attention:inside(Tokenizer);
         autolink -> stub_nok(autolink, Tokenizer);
         html_text -> stub_nok(html_text, Tokenizer);
 

@@ -72,7 +72,9 @@ feed_until_done(StartState, Binary) ->
 %% State results come in the format: {{Action, State}, T} or {Action, T}
 %% where Action is 'retry', 'next', 'ok', or 'nok'
 feed_loop({ok, T}, _MaxIter) ->
-    {ok, T};
+    %% Run resolvers before returning
+    T1 = erlmd_tokeniser:run_resolvers(T),
+    {ok, T1};
 feed_loop({nok, T}, _MaxIter) ->
     {nok, T};
 feed_loop(_Result, 0) ->

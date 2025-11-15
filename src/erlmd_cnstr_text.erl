@@ -75,7 +75,21 @@ start(T) ->
         $\n ->
             {ok, T};
         _ ->
-            try_constructs(T, ?TEXT_CONSTRUCTS)
+            %% Add attention markers (* and _) so data knows to stop at them
+            Markers = erlmd_tokeniser:get_markers(T),
+            HasAsterisk = lists:member($*, Markers),
+            HasUnderscore = lists:member($_, Markers),
+            T1 = if
+                HasAsterisk andalso HasUnderscore ->
+                    T;  % Already have both
+                HasAsterisk ->
+                    erlmd_tokeniser:set_markers(T, [$_ | Markers]);
+                HasUnderscore ->
+                    erlmd_tokeniser:set_markers(T, [$* | Markers]);
+                true ->
+                    erlmd_tokeniser:set_markers(T, [$*, $_ | Markers])
+            end,
+            try_constructs(T1, ?TEXT_CONSTRUCTS)
     end.
 
 %%%=============================================================================
