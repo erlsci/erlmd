@@ -52,6 +52,7 @@
 
     %% Attempts
     attempt/3,
+    attempt_construct/3,
     check/3,
 
     %% Main loop
@@ -261,8 +262,10 @@ attempt(T, Ok, Nok) ->
         progress = Progress
     },
 
+    %% Reset consumed flag so the construct being attempted can consume
     T#tokenizer{
-        attempts = [Attempt | T#tokenizer.attempts]
+        attempts = [Attempt | T#tokenizer.attempts],
+        consumed = false
     }.
 
 -spec check(tokenizer(), state_result(), state_result()) -> tokenizer().
@@ -280,9 +283,83 @@ check(T, Ok, Nok) ->
         progress = Progress
     },
 
+    %% Reset consumed flag so the construct being checked can consume
     T#tokenizer{
-        attempts = [Attempt | T#tokenizer.attempts]
+        attempts = [Attempt | T#tokenizer.attempts],
+        consumed = false
     }.
+
+-spec attempt_construct(tokenizer(), atom(), state_result()) ->
+    {state_result(), tokenizer()}.
+%% @doc Attempt to parse a construct, returning ok/nok result.
+%%
+%% This is a helper function that combines:
+%% 1. Setting up an attempt context
+%% 2. Calling the construct through erlmd_state
+%% 3. Handling the result
+%%
+%% Usage:
+%%   case erlmd_tokenizer:attempt_construct(T, paragraph, nok) of
+%%       {ok, T1} -> ... construct succeeded ...
+%%       {nok, T1} -> ... construct failed, state reverted ...
+%%   end
+attempt_construct(T, ConstructName, NokFallback) ->
+    %% Set up attempt context - on success continue, on failure use fallback
+    T1 = attempt(T, ok, NokFallback),
+
+    %% Call the construct through state dispatcher and run until completion
+    InitialResult = erlmd_state:call(ConstructName, T1),
+    FinalResult = run_construct_to_completion(T1, InitialResult),
+
+    %% Handle the final result
+    case FinalResult of
+        {ok, T2} ->
+            %% Construct succeeded - pop attempt and continue
+            case T2#tokenizer.attempts of
+                [_Attempt | RestAttempts] ->
+                    T3 = T2#tokenizer{attempts = RestAttempts},
+                    {ok, T3};
+                [] ->
+                    {ok, T2}
+            end;
+        {nok, T2} ->
+            %% Construct failed - pop attempt, revert state, use fallback
+            case T2#tokenizer.attempts of
+                [Attempt | RestAttempts] ->
+                    T3 = T2#tokenizer{attempts = RestAttempts},
+                    %% Revert to saved progress
+                    T4 = case Attempt#attempt.progress of
+                        undefined -> T3;
+                        Progress -> restore_progress(T3, Progress)
+                    end,
+                    {nok, T4};
+                [] ->
+                    {nok, T2}
+            end;
+        {error, Reason, T2} ->
+            %% Error - propagate it
+            {error, Reason, T2}
+    end.
+
+%% @private
+%% Run a construct to completion, handling next/retry states
+run_construct_to_completion(_T, {ok, T2}) ->
+    {ok, T2};
+run_construct_to_completion(_T, {nok, T2}) ->
+    {nok, T2};
+run_construct_to_completion(_T, {error, Reason, T2}) ->
+    {error, Reason, T2};
+run_construct_to_completion(T, {{next, NextState}, T2}) ->
+    %% Prepare next byte (resets consumed flag and advances if needed)
+    T3 = prepare_byte(T2),
+    %% Call the next state and continue
+    NextResult = erlmd_state:call(NextState, T3),
+    run_construct_to_completion(T, NextResult);
+run_construct_to_completion(T, {{retry, RetryState}, T2}) ->
+    %% Reset consumed flag without advancing (for retry)
+    T3 = T2#tokenizer{consumed = false},
+    RetryResult = erlmd_state:call(RetryState, T3),
+    run_construct_to_completion(T, RetryResult).
 
 -spec handle_attempt_result(tokenizer(), state_result()) ->
     {state_result(), tokenizer()}.
@@ -496,6 +573,7 @@ capture_progress(T) ->
         stack_len = length(T#tokenizer.stack),
         previous = T#tokenizer.previous,
         current = T#tokenizer.current,
+        consumed = T#tokenizer.consumed,
         index = T#tokenizer.index,
         line = T#tokenizer.line,
         column = T#tokenizer.column,
@@ -525,6 +603,7 @@ restore_progress(T, P) ->
         stack = Stack,
         previous = P#progress.previous,
         current = P#progress.current,
+        consumed = P#progress.consumed,
         index = P#progress.index,
         line = P#progress.line,
         column = P#progress.column,
@@ -551,7 +630,10 @@ feed_loop(T, {next, StateName}) ->
         {{next, NextState}, T2} -> feed_loop(T2, {next, NextState});
         {{retry, RetryState}, T2} ->
             %% Retry without consuming
-            feed_loop(T2#tokenizer{consumed = false}, {next, RetryState})
+            feed_loop(T2#tokenizer{consumed = false}, {next, RetryState});
+        {error, _Reason, _T2} = Error ->
+            %% Error occurred - propagate it
+            Error
     end;
 feed_loop(T, FinalResult) ->
     %% ok or nok - done

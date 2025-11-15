@@ -1,0 +1,94 @@
+%%%-----------------------------------------------------------------------------
+%%% @doc Text (inline) content dispatcher.
+%%%
+%%% Text content handles inline constructs like:
+%%% - Emphasis and strong (*text*, **text**)
+%%% - Links and images ([text](url), ![alt](url))
+%%% - Code spans (`code`)
+%%% - Escapes and entities
+%%% - Autolinks, HTML tags
+%%% - GFM and MDX extensions (if enabled)
+%%%
+%%% Used in: paragraphs, headings, table cells, etc.
+%%%
+%%% Reference: markdown-rs/src/construct/text.rs
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(erlmd_cnstr_text).
+
+-export([start/1]).
+
+-include("types.hrl").
+
+%%%=============================================================================
+%%% Constants
+%%%=============================================================================
+
+%% Text content constructs in priority order
+%% Note: This is the order from markdown-rs/src/construct/text.rs
+-define(TEXT_CONSTRUCTS, [
+    %% Task list item check is special - only at start of first paragraph
+    gfm_task_list_item_check,
+    %% Images before links (same opener `[`)
+    label_start_image,
+    %% Code/math spans
+    raw_text,
+    %% Entities
+    character_reference,
+    %% Emphasis/strong
+    attention,
+    %% Autolinks
+    autolink,
+    html_text,
+    %% MDX (if enabled - will fail gracefully if not implemented)
+    mdx_jsx_text,
+    %% GFM bare URLs
+    gfm_autolink_literal,
+    %% GFM footnotes
+    gfm_label_start_footnote,
+    %% Escapes
+    character_escape,
+    hard_break_escape,
+    %% Links (after images)
+    label_start_link,
+    label_end,
+    %% MDX expressions
+    mdx_expression_text
+]).
+
+%%%=============================================================================
+%%% API Functions
+%%%=============================================================================
+
+-spec start(erlmd_tokenizer:tokenizer()) ->
+    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+%% @doc Entry point for text (inline) content parsing.
+%%
+%% Tries each inline construct in priority order. GFM and MDX constructs
+%% will fail gracefully if not implemented. Falls back to data for literal text.
+start(T) ->
+    try_constructs(T, ?TEXT_CONSTRUCTS).
+
+%%%=============================================================================
+%%% Internal Functions
+%%%=============================================================================
+
+-spec try_constructs(erlmd_tokenizer:tokenizer(), [atom()]) ->
+    {erlmd_tokenizer:state_result(), erlmd_tokenizer:tokenizer()}.
+%% @doc Try each construct in order until one succeeds.
+%%
+%% Pattern: attempt construct, on success continue with text, on failure try next.
+%% This is tail-recursive and preserves binary match context.
+try_constructs(T, []) ->
+    %% No constructs succeeded, try data as ultimate fallback
+    erlmd_tokenizer:attempt_construct(T, data, nok);
+
+try_constructs(T, [Construct | Rest]) ->
+    case erlmd_tokenizer:attempt_construct(T, Construct, nok) of
+        {ok, T1} ->
+            %% Construct succeeded, continue parsing text content
+            start(T1);
+        {nok, T1} ->
+            %% Construct failed, try next in list
+            try_constructs(T1, Rest)
+    end.

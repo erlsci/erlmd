@@ -47,6 +47,7 @@
     stack_len :: non_neg_integer(),
     previous :: byte() | undefined,
     current :: byte() | undefined,
+    consumed :: boolean(),
     index :: non_neg_integer(),
     line :: pos_integer(),
     column :: pos_integer(),
