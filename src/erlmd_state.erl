@@ -193,8 +193,6 @@ call(StateName, Tokenizer) ->
 
         %% Reference parsing (Phase 7.5)
         label_end_reference_full_start -> erlmd_cnstr_label_end:reference_full_start(Tokenizer);
-        label_end_reference_full_open -> erlmd_cnstr_label_end:reference_full_open(Tokenizer);
-        label_end_reference_full_after -> erlmd_cnstr_label_end:reference_full_after(Tokenizer);
         label_end_reference_collapsed_start -> erlmd_cnstr_label_end:reference_collapsed_start(Tokenizer);
         label_end_reference_shortcut -> erlmd_cnstr_label_end:reference_shortcut(Tokenizer);
         raw_text -> stub_nok(raw_text, Tokenizer);

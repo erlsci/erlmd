@@ -204,21 +204,19 @@ bracket_with_space_test() ->
 %%%=============================================================================
 
 %% Full reference: [text][ref]
-%% DISABLED - times out (infinite loop parsing second bracket)
-%% full_reference_link_test() ->
-%%     {ok, T} = parse_inline(<<"[text][ref]">>),
-%%     Labels = erlmd_tokeniser:get_labels(T),
-%%     ?assertEqual(1, length(Labels)),
-%%     [Label] = Labels,
-%%     ?assertEqual(link, Label#label.kind).
+full_reference_link_test() ->
+    {ok, T} = parse_inline(<<"[text][ref]">>),
+    Labels = erlmd_tokeniser:get_labels(T),
+    ?assertEqual(1, length(Labels)),
+    [Label] = Labels,
+    ?assertEqual(link, Label#label.kind).
 
-%% DISABLED - times out
-%% full_reference_image_test() ->
-%%     {ok, T} = parse_inline(<<"![alt][ref]">>),
-%%     Labels = erlmd_tokeniser:get_labels(T),
-%%     ?assertEqual(1, length(Labels)),
-%%     [Label] = Labels,
-%%     ?assertEqual(image, Label#label.kind).
+full_reference_image_test() ->
+    {ok, T} = parse_inline(<<"![alt][ref]">>),
+    Labels = erlmd_tokeniser:get_labels(T),
+    ?assertEqual(1, length(Labels)),
+    [Label] = Labels,
+    ?assertEqual(image, Label#label.kind).
 
 %% Collapsed reference: [text][]
 collapsed_reference_link_test() ->
@@ -244,22 +242,19 @@ shortcut_reference_image_test() ->
     ?assertEqual(image, Label#label.kind).
 
 %% Reference with whitespace
-%% DISABLED - times out
-%% reference_with_spaces_test() ->
-%%     {ok, T} = parse_inline(<<"[text][ ref with spaces ]">>),
-%%     Labels = erlmd_tokeniser:get_labels(T),
-%%     ?assertEqual(1, length(Labels)).
+reference_with_spaces_test() ->
+    {ok, T} = parse_inline(<<"[text][ ref with spaces ]">>),
+    Labels = erlmd_tokeniser:get_labels(T),
+    ?assertEqual(1, length(Labels)).
 
 %% Multiple reference-style links
-%% DISABLED - times out
-%% multiple_references_test() ->
-%%     {ok, T} = parse_inline(<<"[link1][ref1] and [link2][ref2]">>),
-%%     Labels = erlmd_tokeniser:get_labels(T),
-%%     ?assertEqual(2, length(Labels)).
+multiple_references_test() ->
+    {ok, T} = parse_inline(<<"[link1][ref1] and [link2][ref2]">>),
+    Labels = erlmd_tokeniser:get_labels(T),
+    ?assertEqual(2, length(Labels)).
 
 %% Mixed resource and reference
-%% DISABLED - times out
-%% mixed_resource_and_reference_test() ->
-%%     {ok, T} = parse_inline(<<"[resource](url) and [reference][ref]">>),
-%%     Labels = erlmd_tokeniser:get_labels(T),
-%%     ?assertEqual(2, length(Labels)).
+mixed_resource_and_reference_test() ->
+    {ok, T} = parse_inline(<<"[resource](url) and [reference][ref]">>),
+    Labels = erlmd_tokeniser:get_labels(T),
+    ?assertEqual(2, length(Labels)).

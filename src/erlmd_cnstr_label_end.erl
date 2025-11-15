@@ -18,8 +18,7 @@
 -export([resource_start/1, resource_before/1, resource_open/1,
          resource_destination_after/1, resource_destination_missing/1,
          resource_between/1, resource_title_after/1, resource_end/1]).
--export([reference_full_start/1, reference_full_open/1, reference_full_after/1,
-         reference_collapsed_start/1, reference_shortcut/1]).
+-export([reference_full_start/1, reference_collapsed_start/1, reference_shortcut/1]).
 
 -include("types.hrl").
 -include("tokeniser.hrl").
@@ -255,71 +254,65 @@ reference_full_start(T) ->
     io:format("*** reference_full_start, current = ~p~n", [erlmd_tokeniser:current(T)]),
     case erlmd_tokeniser:current(T) of
         $[ ->
-            T1 = erlmd_tokeniser:enter(T, reference),
-            T2 = erlmd_tokeniser:enter(T1, reference_marker),
-            T3 = erlmd_tokeniser:consume(T2),
-            T4 = erlmd_tokeniser:exit(T3, reference_marker),
-            {{next, label_end_reference_full_open}, T4};
+            %% Set token names for prtl_label
+            T1 = erlmd_tokeniser:set_token_names(T,
+                reference,
+                reference_marker,
+                reference_string,
+                undefined, undefined),
+
+            %% Use prtl_label to parse [ref] including brackets
+            %% prtl_label will enter/exit the reference token
+            case erlmd_tokeniser:attempt_construct(T1, prtl_label_start, nok) of
+                {ok, T2} ->
+                    io:format("*** Reference label parsed successfully~n"),
+                    %% Success! Full reference matched
+                    {{retry, label_end_ok}, T2};
+                {nok, T2} ->
+                    %% Check if it's a collapsed reference []
+                    case erlmd_tokeniser:current(T2) of
+                        $[ ->
+                            %% Still on [, try collapsed reference
+                            {{retry, label_end_reference_collapsed_start}, T2};
+                        _ ->
+                            io:format("*** Reference label parsing failed~n"),
+                            {{retry, label_end_nok}, T2}
+                    end
+            end;
         _ ->
             {nok, T}
     end.
 
-%% @doc After opening `[`, try to parse reference label.
-reference_full_open(T) ->
-    io:format("*** reference_full_open, current = ~p~n", [erlmd_tokeniser:current(T)]),
-    case erlmd_tokeniser:current(T) of
-        $] ->
-            %% Collapsed reference: [text][]
-            io:format("*** Collapsed reference (empty label)~n"),
-            {{retry, label_end_reference_collapsed_start}, T};
-        _ ->
-            %% Try to parse full reference label
-            io:format("*** Trying to parse reference label~n"),
-            T1 = erlmd_tokeniser:set_token_names(T,
-                reference_string,
-                undefined, undefined, undefined, undefined),
-
-            case erlmd_tokeniser:attempt_construct(T1, prtl_label_start, nok) of
-                {ok, T2} ->
-                    io:format("*** Reference label parsed successfully~n"),
-                    {{retry, label_end_reference_full_after}, T2};
-                {nok, T2} ->
-                    io:format("*** Reference label parsing failed~n"),
-                    {{retry, label_end_nok}, T2}
-            end
-    end.
-
-%% @doc After parsing reference label, consume closing `]`.
-reference_full_after(T) ->
-    io:format("*** reference_full_after, current = ~p~n", [erlmd_tokeniser:current(T)]),
-    case erlmd_tokeniser:current(T) of
-        $] ->
-            T1 = erlmd_tokeniser:enter(T, reference_marker),
-            T2 = erlmd_tokeniser:consume(T1),
-            T3 = erlmd_tokeniser:exit(T2, reference_marker),
-            T4 = erlmd_tokeniser:exit(T3, reference),
-            %% Success! Full reference matched
-            io:format("*** Full reference complete, calling label_end_ok~n"),
-            {{retry, label_end_ok}, T4};
-        _ ->
-            io:format("*** No closing ], failing~n"),
-            {{retry, label_end_nok}, T}
-    end.
-
 %% @doc Handle collapsed reference [text][].
+%% Expects to be on `[` after failed prtl_label attempt.
 reference_collapsed_start(T) ->
     io:format("*** reference_collapsed_start, current = ~p~n", [erlmd_tokeniser:current(T)]),
     case erlmd_tokeniser:current(T) of
-        $] ->
-            T1 = erlmd_tokeniser:enter(T, reference_marker),
-            T2 = erlmd_tokeniser:consume(T1),
-            T3 = erlmd_tokeniser:exit(T2, reference_marker),
-            T4 = erlmd_tokeniser:exit(T3, reference),
-            %% Success! Collapsed reference matched
-            io:format("*** Collapsed reference complete, calling label_end_ok~n"),
-            {{retry, label_end_ok}, T4};
+        $[ ->
+            %% Enter reference and consume opening [
+            T1 = erlmd_tokeniser:enter(T, reference),
+            T2 = erlmd_tokeniser:enter(T1, reference_marker),
+            T3 = erlmd_tokeniser:consume(T2),
+            T4 = erlmd_tokeniser:exit(T3, reference_marker),
+
+            %% Check for immediate ] (collapsed reference)
+            case erlmd_tokeniser:current(T4) of
+                $] ->
+                    %% Collapsed reference - consume ]
+                    %% Reset consumed flag manually before second consume
+                    T4_1 = T4#tokenizer{consumed = false},
+                    T5 = erlmd_tokeniser:enter(T4_1, reference_marker),
+                    T6 = erlmd_tokeniser:consume(T5),
+                    T7 = erlmd_tokeniser:exit(T6, reference_marker),
+                    T8 = erlmd_tokeniser:exit(T7, reference),
+                    io:format("*** Collapsed reference complete, calling label_end_ok~n"),
+                    {{retry, label_end_ok}, T8};
+                _ ->
+                    io:format("*** Not collapsed reference, failing~n"),
+                    {{retry, label_end_nok}, T4}
+            end;
         _ ->
-            io:format("*** Expected ], failing~n"),
+            io:format("*** Expected [, failing~n"),
             {{retry, label_end_nok}, T}
     end.
 
