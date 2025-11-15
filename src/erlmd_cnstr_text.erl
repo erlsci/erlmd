@@ -26,14 +26,15 @@
 
 %% Text content constructs in priority order
 %% Note: This is the order from markdown-rs/src/construct/text.rs
+%% Phase 6 constructs are now implemented: code_text, character_reference, character_escape, hard_break_escape
 -define(TEXT_CONSTRUCTS, [
     %% Task list item check is special - only at start of first paragraph
     gfm_task_list_item_check,
     %% Images before links (same opener `[`)
     label_start_image,
-    %% Code/math spans
-    raw_text,
-    %% Entities
+    %% Code/math spans (implemented in Phase 6)
+    code_text,
+    %% Entities (implemented in Phase 6)
     character_reference,
     %% Emphasis/strong
     attention,
@@ -46,7 +47,7 @@
     gfm_autolink_literal,
     %% GFM footnotes
     gfm_label_start_footnote,
-    %% Escapes
+    %% Escapes (implemented in Phase 6)
     character_escape,
     hard_break_escape,
     %% Links (after images)

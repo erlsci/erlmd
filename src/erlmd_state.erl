@@ -76,9 +76,30 @@ call(StateName, Tokenizer) ->
         %% BOM (Byte Order Mark)
         bom -> stub_nok(bom, Tokenizer);
 
-        %% Character escapes and references
-        character_escape -> stub_nok(character_escape, Tokenizer);
-        character_reference -> stub_nok(character_reference, Tokenizer);
+        %%=====================================================================
+        %% Phase 6: Basic Inline Constructs
+        %%=====================================================================
+
+        %% Character escape (implemented in Phase 6)
+        character_escape -> erlmd_cnstr_character_escape:start(Tokenizer);
+        character_escape_inside -> erlmd_cnstr_character_escape:inside(Tokenizer);
+
+        %% Hard break escape (implemented in Phase 6)
+        hard_break_escape -> erlmd_cnstr_hard_break_escape:start(Tokenizer);
+        hard_break_escape_after -> erlmd_cnstr_hard_break_escape:after_escape(Tokenizer);
+
+        %% Code text / inline code (implemented in Phase 6)
+        code_text -> erlmd_cnstr_code_text:start(Tokenizer);
+        code_text_sequence_open -> erlmd_cnstr_code_text:sequence_open(Tokenizer);
+        code_text_between -> erlmd_cnstr_code_text:between(Tokenizer);
+        code_text_data -> erlmd_cnstr_code_text:data(Tokenizer);
+        code_text_sequence_close -> erlmd_cnstr_code_text:sequence_close(Tokenizer);
+
+        %% Character reference (implemented in Phase 6)
+        character_reference -> erlmd_cnstr_character_reference:start(Tokenizer);
+        character_reference_open -> erlmd_cnstr_character_reference:open(Tokenizer);
+        character_reference_numeric -> erlmd_cnstr_character_reference:numeric(Tokenizer);
+        character_reference_value -> erlmd_cnstr_character_reference:value(Tokenizer);
 
         %% Block constructs (Phase 5+)
         %% Paragraph (implemented in Phase 5)
@@ -123,7 +144,6 @@ call(StateName, Tokenizer) ->
         attention -> stub_nok(attention, Tokenizer);
         autolink -> stub_nok(autolink, Tokenizer);
         html_text -> stub_nok(html_text, Tokenizer);
-        hard_break_escape -> stub_nok(hard_break_escape, Tokenizer);
 
         %% GFM constructs (Phase 11+)
         gfm_task_list_item_check -> stub_nok(gfm_task_list_item_check, Tokenizer);
