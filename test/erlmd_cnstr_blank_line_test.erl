@@ -5,8 +5,8 @@
 -module(erlmd_cnstr_blank_line_test).
 
 -include_lib("eunit/include/eunit.hrl").
--include("../src/types.hrl").
--include("../src/tokenizer_internal.hrl").
+-include("types.hrl").
+-include("tokenizer_internal.hrl").
 
 %%%=============================================================================
 %%% Tests

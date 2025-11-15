@@ -16,7 +16,7 @@
     feed_until_done/2
 ]).
 
--include("../src/types.hrl").
+-include("types.hrl").
 
 %%%=============================================================================
 %%% API Functions

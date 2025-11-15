@@ -5,8 +5,8 @@
 -module(erlmd_cnstr_prtl_space_or_tab_test).
 
 -include_lib("eunit/include/eunit.hrl").
--include("../src/types.hrl").
--include("../src/tokenizer_internal.hrl").
+-include("types.hrl").
+-include("tokenizer_internal.hrl").
 
 %%%=============================================================================
 %%% Tests

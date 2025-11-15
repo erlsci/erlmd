@@ -7,7 +7,7 @@
 -module(erlmd_integration_test).
 
 -include_lib("eunit/include/eunit.hrl").
--include("../src/types.hrl").
+-include("types.hrl").
 
 %%%=============================================================================
 %%% Integration Tests

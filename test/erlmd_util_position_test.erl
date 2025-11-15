@@ -8,7 +8,7 @@
 -module(erlmd_util_position_test).
 
 -include_lib("eunit/include/eunit.hrl").
--include("../src/types.hrl").
+-include("types.hrl").
 
 %%%=============================================================================
 %%% Point Creation Tests

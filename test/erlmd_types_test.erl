@@ -8,7 +8,7 @@
 -module(erlmd_types_test).
 
 -include_lib("eunit/include/eunit.hrl").
--include("../src/types.hrl").
+-include("types.hrl").
 
 %%%=============================================================================
 %%% Point Tests

@@ -5,7 +5,7 @@
 -module(erlmd_cnstr_heading_atx_test).
 
 -include_lib("eunit/include/eunit.hrl").
--include("../src/types.hrl").
+-include("types.hrl").
 
 %%%=============================================================================
 %%% Test Helpers
