@@ -104,7 +104,13 @@ call(StateName, Tokenizer) ->
         thematic_break_consume_whitespace -> erlmd_cnstr_thematic_break:consume_whitespace(Tokenizer);
         thematic_break_consume_prefix -> erlmd_cnstr_thematic_break:after_prefix(Tokenizer);
 
-        code_indented -> stub_nok(code_indented, Tokenizer);
+        %% Indented code (implemented in Phase 5 - simplified)
+        code_indented -> erlmd_cnstr_code_indented:start(Tokenizer);
+        code_indented_after_prefix -> erlmd_cnstr_code_indented:after_prefix(Tokenizer);
+        code_indented_begin_line -> erlmd_cnstr_code_indented:begin_line(Tokenizer);
+        code_indented_content_inside -> erlmd_cnstr_code_indented:content_inside(Tokenizer);
+        code_indented_further_start -> erlmd_cnstr_code_indented:further_start(Tokenizer);
+        code_indented_further_end -> erlmd_cnstr_code_indented:further_end(Tokenizer);
         raw_flow -> stub_nok(raw_flow, Tokenizer);
         html_flow -> stub_nok(html_flow, Tokenizer);
         definition -> stub_nok(definition, Tokenizer);
