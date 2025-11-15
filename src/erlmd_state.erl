@@ -84,7 +84,14 @@ call(StateName, Tokenizer) ->
         paragraph -> stub_nok(paragraph, Tokenizer);
         heading_atx -> stub_nok(heading_atx, Tokenizer);
         heading_setext -> stub_nok(heading_setext, Tokenizer);
-        thematic_break -> stub_nok(thematic_break, Tokenizer);
+
+        %% Thematic break (implemented in Phase 5)
+        thematic_break -> erlmd_cnstr_thematic_break:start(Tokenizer);
+        thematic_break_inside -> erlmd_cnstr_thematic_break:inside(Tokenizer);
+        thematic_break_at_break -> erlmd_cnstr_thematic_break:at_break(Tokenizer);
+        thematic_break_consume_whitespace -> erlmd_cnstr_thematic_break:consume_whitespace(Tokenizer);
+        thematic_break_consume_prefix -> erlmd_cnstr_thematic_break:after_prefix(Tokenizer);
+
         code_indented -> stub_nok(code_indented, Tokenizer);
         raw_flow -> stub_nok(raw_flow, Tokenizer);
         html_flow -> stub_nok(html_flow, Tokenizer);
