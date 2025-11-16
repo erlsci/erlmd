@@ -105,3 +105,58 @@ unordered_with_three_spaces_indent_test() ->
     {ok, T} = parse_list_item(<<"   * item">>),
 
     ?assert(has_event(T, list_item)).
+
+%%%=============================================================================
+%%% Whitespace After Marker Tests (Day 2)
+%%%=============================================================================
+
+no_space_after_marker_test() ->
+    %% *item (no space after *)
+    {ok, T} = parse_list_item(<<"*item">>),
+
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_marker)).
+
+multiple_spaces_after_marker_test() ->
+    %% *    item (4 spaces after *)
+    {ok, T} = parse_list_item(<<"*    item">>),
+
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, space_or_tab)).
+
+tab_after_marker_test() ->
+    %% *\titem (tab after *)
+    {ok, T} = parse_list_item(<<"*\titem">>),
+
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, space_or_tab)).
+
+empty_list_item_test() ->
+    %% * (just marker, no content)
+    {ok, T} = parse_list_item(<<"*">>),
+
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_marker)).
+
+ordered_no_space_after_marker_test() ->
+    %% 1.item (no space after marker)
+    {ok, T} = parse_list_item(<<"1.item">>),
+
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_value)).
+
+five_spaces_after_marker_test() ->
+    %% *     item (5 spaces after marker)
+    %% Should consume only 4 spaces (max allowed for prefix)
+    {ok, T} = parse_list_item(<<"*     item">>),
+
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, space_or_tab)).
+
+six_spaces_after_marker_test() ->
+    %% *      item (6 spaces after marker)
+    %% Should still consume only 4 spaces
+    {ok, T} = parse_list_item(<<"*      item">>),
+
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, space_or_tab)).

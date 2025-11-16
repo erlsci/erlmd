@@ -15,7 +15,7 @@
 %%%-----------------------------------------------------------------------------
 -module(erlmd_cnstr_list_item).
 
--export([start/1, cont_start/1, before/1, before_unordered/1, value/1, marker/1, after_marker/1]).
+-export([start/1, cont_start/1, before/1, before_unordered/1, value/1, marker/1, after_marker/1, after_whitespace/1]).
 
 -include("types.hrl").
 
@@ -177,8 +177,36 @@ marker(T) ->
 -spec after_marker(erlmd_tokeniser:tokenizer()) ->
     {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc After list item marker.
-%% Simple placeholder - full implementation in Day 2.
+%% Handles whitespace between marker and content.
+%%
+%% ```markdown
+%% > | * a
+%%      ^
+%% > | *a
+%%      ^
+%% ```
 after_marker(T) ->
-    %% For now, just exit the prefix and succeed
+    case erlmd_tokeniser:current(T) of
+        C when C =:= $\t; C =:= $\s ->
+            %% Has whitespace - consume 1-4 spaces/tabs
+            %% Per CommonMark: 1-4 spaces are consumed as prefix
+            %% If 5+ spaces, only 1 is consumed (rest forms indented code block)
+            T1 = erlmd_tokeniser:attempt(T, {next, list_item_after_whitespace}, nok),
+            erlmd_cnstr_prtl_space_or_tab:space_or_tab_min_max(T1, 1, 4);
+        C when C =:= eof; C =:= $\n ->
+            %% Empty list item (no content after marker)
+            T1 = erlmd_tokeniser:exit(T, list_item_prefix),
+            {ok, T1};
+        _ ->
+            %% No space - content starts immediately (like "*a")
+            %% This is allowed by CommonMark
+            T1 = erlmd_tokeniser:exit(T, list_item_prefix),
+            {ok, T1}
+    end.
+
+-spec after_whitespace(erlmd_tokeniser:tokenizer()) ->
+    {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
+%% @doc After consuming whitespace following the marker.
+after_whitespace(T) ->
     T1 = erlmd_tokeniser:exit(T, list_item_prefix),
     {ok, T1}.

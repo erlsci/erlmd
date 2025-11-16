@@ -177,6 +177,7 @@ call(StateName, Tokenizer) ->
         list_item_value -> erlmd_cnstr_list_item:value(Tokenizer);
         list_item_marker -> erlmd_cnstr_list_item:marker(Tokenizer);
         list_item_after -> erlmd_cnstr_list_item:after_marker(Tokenizer);
+        list_item_after_whitespace -> erlmd_cnstr_list_item:after_whitespace(Tokenizer);
 
         %% Indented code (implemented in Phase 5 - simplified)
         code_indented -> erlmd_cnstr_code_indented:start(Tokenizer);
