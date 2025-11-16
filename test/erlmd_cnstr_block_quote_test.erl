@@ -64,26 +64,25 @@ empty_block_quote_test() ->
 
 %%%=============================================================================
 %%% Indentation Tests
-%%% DISABLED: Attempt mechanism needs more work
 %%%=============================================================================
 
-%% block_quote_with_one_space_indent_test() ->
-%%     %%  > text (1 space before >)
-%%     {ok, T} = parse_block_quote(<<" > text">>),
-%%
-%%     ?assert(has_event(T, block_quote)).
-%%
-%% block_quote_with_two_spaces_indent_test() ->
-%%     %%   > text (2 spaces before >)
-%%     {ok, T} = parse_block_quote(<<"  > text">>),
-%%
-%%     ?assert(has_event(T, block_quote)).
-%%
-%% block_quote_with_three_spaces_indent_test() ->
-%%     %%    > text (3 spaces before >)
-%%     {ok, T} = parse_block_quote(<<"   > text">>),
-%%
-%%     ?assert(has_event(T, block_quote)).
+block_quote_with_one_space_indent_test() ->
+    %%  > text (1 space before >)
+    {ok, T} = parse_block_quote(<<" > text">>),
+
+    ?assert(has_event(T, block_quote)).
+
+block_quote_with_two_spaces_indent_test() ->
+    %%   > text (2 spaces before >)
+    {ok, T} = parse_block_quote(<<"  > text">>),
+
+    ?assert(has_event(T, block_quote)).
+
+block_quote_with_three_spaces_indent_test() ->
+    %%    > text (3 spaces before >)
+    {ok, T} = parse_block_quote(<<"   > text">>),
+
+    ?assert(has_event(T, block_quote)).
 
 %%%=============================================================================
 %%% Edge Cases

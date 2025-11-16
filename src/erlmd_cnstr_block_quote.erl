@@ -50,11 +50,8 @@ cont_start(T) ->
             %% Optional whitespace before marker (0-3 spaces)
             %% Set up attempt - success continues to block_quote_cont_before, failure returns nok
             T1 = erlmd_tokeniser:attempt(T, {next, block_quote_cont_before}, nok),
-            %% Set up space_or_tab parameters
-            T2 = erlmd_tokeniser:set_state(T1, space_or_tab_size, 0),
-            T3 = erlmd_tokeniser:set_state(T2, space_or_tab_max, 3),
-            %% Try to parse 1-3 spaces/tabs
-            erlmd_cnstr_prtl_space_or_tab:start(T3);
+            %% Try to parse 1-3 spaces/tabs using the helper function
+            erlmd_cnstr_prtl_space_or_tab:space_or_tab_min_max(T1, 1, 3);
         _ ->
             cont_before(T)
     end.
