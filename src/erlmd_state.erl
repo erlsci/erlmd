@@ -160,6 +160,16 @@ call(StateName, Tokenizer) ->
         thematic_break_consume_whitespace -> erlmd_cnstr_thematic_break:consume_whitespace(Tokenizer);
         thematic_break_consume_prefix -> erlmd_cnstr_thematic_break:after_prefix(Tokenizer);
 
+        %%=====================================================================
+        %% Phase 8: Complex Block Constructs
+        %%=====================================================================
+
+        %% Block quote (implemented in Phase 8.1)
+        block_quote -> erlmd_cnstr_block_quote:start(Tokenizer);
+        block_quote_cont_start -> erlmd_cnstr_block_quote:cont_start(Tokenizer);
+        block_quote_cont_after -> erlmd_cnstr_block_quote:cont_after(Tokenizer);
+        block_quote_cont_before -> erlmd_cnstr_block_quote:cont_before(Tokenizer);
+
         %% Indented code (implemented in Phase 5 - simplified)
         code_indented -> erlmd_cnstr_code_indented:start(Tokenizer);
         code_indented_after_prefix -> erlmd_cnstr_code_indented:after_prefix(Tokenizer);

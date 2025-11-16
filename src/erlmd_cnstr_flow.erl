@@ -49,6 +49,8 @@
     thematic_break,
     %% GFM table (if enabled)
     gfm_table,
+    %% Container constructs
+    block_quote,  % Phase 8.1: Block quotes
     %% Definitions and content
     definition,
     %% Paragraph MUST BE LAST - it's the default/fallback
