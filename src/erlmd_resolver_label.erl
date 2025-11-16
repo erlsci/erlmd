@@ -37,18 +37,13 @@
 %% This modifies the events list in the tokenizer.
 resolve(T) ->
     Labels = erlmd_tokeniser:get_labels(T),
-    io:format("~n=== Label Resolver ===~n"),
-    io:format("Labels to resolve: ~p~n", [length(Labels)]),
 
     %% Process labels in reverse order (last to first)
     %% This ensures positions remain valid as we insert events
     ReversedLabels = lists:reverse(Labels),
 
     %% Process each label
-    T1 = lists:foldl(fun resolve_label/2, T, ReversedLabels),
-
-    io:format("=== Label Resolution Complete ===~n~n"),
-    T1.
+    lists:foldl(fun resolve_label/2, T, ReversedLabels).
 
 %%%=============================================================================
 %%% Internal Functions
@@ -59,24 +54,16 @@ resolve(T) ->
 -spec resolve_label(label(), erlmd_tokeniser:tokenizer()) ->
     erlmd_tokeniser:tokenizer().
 resolve_label(Label, T) ->
-    io:format("~nResolving label: ~p~n", [Label]),
-
     #label{
         kind = Kind,
         start = {StartPoint, _StartEvent},
         'end' = {EndPoint, _EndEvent}
     } = Label,
 
-    io:format("  Kind: ~p~n", [Kind]),
-    io:format("  Start point: ~p~n", [StartPoint]),
-    io:format("  End point: ~p~n", [EndPoint]),
-
     %% Get events list (in reverse order - newest first)
     Events = erlmd_tokeniser:get_events(T),
 
-    %% Find events at the start and end points
-    %% We need to insert link/image enter/exit events around the label content
-
+    %% Determine token name based on label kind
     TokenName = case Kind of
         link -> link;
         image -> image
@@ -86,10 +73,6 @@ resolve_label(Label, T) ->
     %% and the first event AT or AFTER the end point
     {EventsBefore, EventsFromStart} = split_at_point(Events, StartPoint),
     {EventsMiddle, EventsAfter} = split_at_point(EventsFromStart, EndPoint),
-
-    io:format("  Events before start: ~p~n", [length(EventsBefore)]),
-    io:format("  Events in middle: ~p~n", [length(EventsMiddle)]),
-    io:format("  Events after end: ~p~n", [length(EventsAfter)]),
 
     %% Create enter and exit events with the exact points
     %% StartPoint and EndPoint are integers (offsets), convert to point records
@@ -111,8 +94,6 @@ resolve_label(Label, T) ->
 
     %% Reconstruct events: Before + Enter + Middle + Exit + After
     NewEvents = EventsBefore ++ [EnterEvent] ++ EventsMiddle ++ [ExitEvent] ++ EventsAfter,
-
-    io:format("  Inserted ~p enter/exit events~n", [TokenName]),
 
     %% Update tokenizer with new events
     T#tokenizer{events = NewEvents}.

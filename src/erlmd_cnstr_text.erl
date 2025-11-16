@@ -114,19 +114,11 @@ try_constructs(T, []) ->
     end;
 
 try_constructs(T, [Construct | Rest]) ->
-    %% DEBUG
-    Curr = erlmd_tokeniser:current(T),
-    if Curr =:= $] -> io:format("  Trying ~p at ]~n", [Construct]); true -> ok end,
-
     case erlmd_tokeniser:attempt_construct(T, Construct, nok) of
         {ok, T1} ->
-            %% DEBUG
-            if Curr =:= $] -> io:format("  -> ~p succeeded!~n", [Construct]); true -> ok end,
             %% Construct succeeded, continue parsing text content
             start(T1);
         {nok, T1} ->
-            %% DEBUG
-            if Curr =:= $] -> io:format("  -> ~p failed~n", [Construct]); true -> ok end,
             %% Construct failed, try next in list
             try_constructs(T1, Rest)
     end.

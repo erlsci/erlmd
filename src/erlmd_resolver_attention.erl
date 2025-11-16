@@ -27,17 +27,11 @@
 %%
 %% Implements the inside-out matching algorithm from CommonMark spec.
 resolve(T) ->
-    io:format("~n=== Attention Resolver ===~n"),
-
     %% Get all attention sequences with metadata
     Sequences = get_sequences(T),
-    io:format("Found ~p attention sequences~n", [length(Sequences)]),
 
     %% Match sequences and create emphasis/strong events
-    T1 = match_sequences(T, Sequences),
-
-    io:format("=== Attention Resolution Complete ===~n~n"),
-    T1.
+    match_sequences(T, Sequences).
 
 %%%=============================================================================
 %%% Sequence Extraction
@@ -194,8 +188,6 @@ match_sequences(T, Sequences, CloseIdx) ->
             %% Try to find matching opener
             case find_opener(Sequences, CloseIdx) of
                 {ok, OpenIdx, TakeCount} ->
-                    io:format("Matched sequences ~p and ~p (take ~p)~n",
-                             [OpenIdx, CloseIdx, TakeCount]),
                     %% Match found, create emphasis/strong events
                     T1 = create_emphasis_events(T, Sequences, OpenIdx, CloseIdx, TakeCount),
                     %% Update sequences list
