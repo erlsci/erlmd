@@ -1,10 +1,10 @@
 %%%-----------------------------------------------------------------------------
-%%% @doc Tests for subtokenization module.
+%%% @doc Tests for subtokenisation module.
 %%%
 %%% Tests the recursive processing of linked events.
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(erlmd_subtokenize_test).
+-module(erlmd_subtokenise_test).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("types.hrl").
@@ -29,7 +29,7 @@ link_simple_test() ->
     ],
 
     %% Link event at index 2 to previous void event at index 0
-    Events2 = erlmd_subtokenize:link(Events, 2),
+    Events2 = erlmd_subtokenise:link(Events, 2),
 
     %% Check links were set correctly
     E0 = lists:nth(1, Events2),
@@ -58,7 +58,7 @@ link_to_explicit_test() ->
     ],
 
     %% Link indices 0 and 2
-    Events2 = erlmd_subtokenize:link_to(Events, 0, 2),
+    Events2 = erlmd_subtokenise:link_to(Events, 0, 2),
 
     %% Verify bidirectional link
     E0 = lists:nth(1, Events2),
@@ -91,10 +91,10 @@ link_chain_test() ->
     ],
 
     %% Link first data to paragraph
-    Events2 = erlmd_subtokenize:link(Events, 2),
+    Events2 = erlmd_subtokenise:link(Events, 2),
 
     %% Link second data to first data
-    Events3 = erlmd_subtokenize:link_to(Events2, 2, 4),
+    Events3 = erlmd_subtokenise:link_to(Events2, 2, 4),
 
     %% Verify chain: paragraph -> data[0] -> data[1]
     E0 = lists:nth(1, Events3),
@@ -124,13 +124,13 @@ link_content_type_mismatch_test() ->
     ],
 
     %% Should crash with assertion failure
-    ?assertError({badmatch, false}, erlmd_subtokenize:link(Events, 2)).
+    ?assertError({badmatch, false}, erlmd_subtokenise:link(Events, 2)).
 
 %%%=============================================================================
-%%% Subtokenize Tests (Basic - will expand as implementation progresses)
+%%% Subtokenise Tests (Basic - will expand as implementation progresses)
 %%%=============================================================================
 
-subtokenize_no_links_test() ->
+subtokenise_no_links_test() ->
     %% Events with no links should return done=true
     Events = [
         #event{kind = enter, name = paragraph,
@@ -145,14 +145,14 @@ subtokenize_no_links_test() ->
 
     ParseState = #{bytes => <<"test">>},
 
-    {ok, Result, Events2} = erlmd_subtokenize:subtokenize(Events, ParseState, undefined),
+    {ok, Result, Events2} = erlmd_subtokenise:subtokenise(Events, ParseState, undefined),
 
     ?assertEqual(true, Result#subresult.done),
     ?assertEqual([], Result#subresult.definitions),
     ?assertEqual([], Result#subresult.gfm_footnote_definitions),
     ?assertEqual(Events, Events2).  % No changes when no links
 
-subtokenize_with_link_test() ->
+subtokenise_with_link_test() ->
     %% Events with a link should return done=false (needs another pass)
     Events = [
         #event{kind = enter, name = paragraph,
@@ -169,9 +169,9 @@ subtokenize_with_link_test() ->
 
     ParseState = #{bytes => <<"test">>},
 
-    {ok, Result, _Events2} = erlmd_subtokenize:subtokenize(Events, ParseState, undefined),
+    {ok, Result, _Events2} = erlmd_subtokenise:subtokenise(Events, ParseState, undefined),
 
-    %% When links are found, done should be false (need another subtokenize pass)
+    %% When links are found, done should be false (need another subtokenise pass)
     ?assertEqual(false, Result#subresult.done).
 
 %%%=============================================================================
@@ -190,7 +190,7 @@ extract_slice_simple_test() ->
     ],
 
     Bytes = <<"Hello World">>,
-    Slice = erlmd_subtokenize:extract_slice(Events, Bytes, 0),
+    Slice = erlmd_subtokenise:extract_slice(Events, Bytes, 0),
 
     ?assertEqual(<<"Hello World">>, Slice).
 
@@ -204,7 +204,7 @@ extract_slice_void_test() ->
     ],
 
     Bytes = <<"test test">>,
-    Slice = erlmd_subtokenize:extract_slice(Events, Bytes, 0),
+    Slice = erlmd_subtokenise:extract_slice(Events, Bytes, 0),
 
     ?assertEqual(<<>>, Slice).
 
@@ -222,7 +222,7 @@ extract_slice_nested_test() ->
     ],
 
     Bytes = <<"test">>,
-    Slice = erlmd_subtokenize:extract_slice(Events, Bytes, 0),
+    Slice = erlmd_subtokenise:extract_slice(Events, Bytes, 0),
 
     %% Should extract from first enter to last exit (entire content)
     ?assertEqual(<<"test">>, Slice).

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @doc Subtokenization - Recursively tokenize nested content.
+%%% @doc Subtokenisation - Recursively tokenise nested content.
 %%%
 %%% This module handles the recursive processing of linked events to parse
 %%% nested content within block constructs. For example, parsing inline content
@@ -22,19 +22,19 @@
 %%%
 %%% **Algorithm**:
 %%% 1. Find events with `link` field set
-%%% 2. For each link chain, create a new tokenizer
-%%% 3. Feed linked slices to the subtokenizer
+%%% 2. For each link chain, create a new tokeniser
+%%% 3. Feed linked slices to the subtokeniser
 %%% 4. Collect resulting sub-events
 %%% 5. Divide sub-events back into original event positions
 %%% 6. Replace links with actual parsed events
 %%%
-%%% Reference: markdown-rs src/subtokenize.rs
+%%% Reference: markdown-rs src/subtokenise.rs
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(erlmd_subtokenize).
+-module(erlmd_subtokenise).
 
 -export([
-    subtokenize/3,
+    subtokenise/3,
     link/2,
     link_to/3,
     extract_slice/3  % For testing
@@ -132,14 +132,14 @@ link_to(Events, Previous, Next) ->
     Events2.
 
 %%%=============================================================================
-%%% API Functions - Subtokenization
+%%% API Functions - Subtokenisation
 %%%=============================================================================
 
--spec subtokenize(Events, ParseState, Filter) -> {ok, subresult(), [event()]} | {error, term()}
+-spec subtokenise(Events, ParseState, Filter) -> {ok, subresult(), [event()]} | {error, term()}
     when Events :: [event()],
          ParseState :: map(),
          Filter :: content_type() | undefined.
-%% @doc Main subtokenization entry point.
+%% @doc Main subtokenisation entry point.
 %%
 %% Processes all linked events in the event stream, recursively parsing
 %% their nested content and inserting the results back into the event stream.
@@ -152,7 +152,7 @@ link_to(Events, Previous, Next) ->
 %% - `done`: true if no more links to process, false otherwise
 %% - `definitions`: any link reference definitions found
 %% - `gfm_footnote_definitions`: any footnote definitions found
-subtokenize(Events, ParseState, Filter) ->
+subtokenise(Events, ParseState, Filter) ->
     Map = erlmd_edit_map:new(),
     Result = #subresult{
         done = true,
@@ -187,12 +187,12 @@ subtokenize(Events, ParseState, Filter) ->
 %% This function:
 %% 1. Walks the link chain from StartIndex
 %% 2. Extracts content slices from each linked event
-%% 3. Creates a subtokenizer for the content type
-%% 4. Feeds all slices to the subtokenizer
+%% 3. Creates a subtokeniser for the content type
+%% 4. Feeds all slices to the subtokeniser
 %% 5. Collects sub-events and updates edit map
 %%
 %% For Week 1 Days 3-4, this is a simplified implementation that
-%% collects the chain but doesn't yet create full subtokenizers.
+%% collects the chain but doesn't yet create full subtokenisers.
 process_link_chain(Events, ParseState, StartIndex, Link, Map, Result) ->
     % Walk the link chain to collect all linked events
     ChainIndices = collect_chain_indices(Events, StartIndex, Link),
@@ -201,7 +201,7 @@ process_link_chain(Events, ParseState, StartIndex, Link, Map, Result) ->
     {ok, _Slices} = feed_link_chain(Events, ParseState, ChainIndices),
 
     % For now, simplified: just mark that we processed a link chain
-    % TODO (Week 1 Day 5+): Create actual subtokenizer, feed content, divide events
+    % TODO (Week 1 Day 5+): Create actual subtokeniser, feed content, divide events
     Result2 = Result#subresult{done = false},
 
     % TODO: Use edit_map to replace linked events with sub-events
@@ -239,21 +239,21 @@ collect_chain_indices(Events, _Index, #link{next = NextIndex}, Acc) ->
     when Events :: [event()],
          ParseState :: map(),
          ChainIndices :: [non_neg_integer()].
-%% @doc Feed linked event slices to a subtokenizer.
+%% @doc Feed linked event slices to a subtokeniser.
 %%
 %% For each linked event in the chain:
 %% 1. Extract the content slice (between enter/exit events)
-%% 2. Feed it to the subtokenizer
+%% 2. Feed it to the subtokeniser
 %% 3. Collect resulting sub-events
 %%
-%% Week 1 Days 3-4: Extract slices (simplified - no actual subtokenizer yet)
-%% TODO (Week 1 Day 5+): Create subtokenizer and feed extracted slices
+%% Week 1 Days 3-4: Extract slices (simplified - no actual subtokeniser yet)
+%% TODO (Week 1 Day 5+): Create subtokeniser and feed extracted slices
 feed_link_chain(Events, ParseState, ChainIndices) ->
     % Extract content slices from each linked event
     Slices = extract_slices(Events, ParseState, ChainIndices),
 
-    % TODO (Week 1 Day 5+): Create subtokenizer for the content type
-    % TODO (Week 1 Day 5+): Feed each slice to subtokenizer
+    % TODO (Week 1 Day 5+): Create subtokeniser for the content type
+    % TODO (Week 1 Day 5+): Feed each slice to subtokeniser
     % TODO (Week 1 Day 5+): Collect sub-events
 
     % For now, return empty list (no sub-events yet)
