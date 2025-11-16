@@ -69,6 +69,7 @@
 -export([
     get_events/1,
     set_events/2,
+    get_bytes/1,
     get_state/2,
     set_state/3,
     clear_state/2,
@@ -491,6 +492,11 @@ get_events(#tokenizer{events = Events}) ->
 %% @doc Set the events list (should be in reversed order).
 set_events(T, Events) ->
     T#tokenizer{events = Events}.
+
+-spec get_bytes(tokenizer()) -> binary().
+%% @doc Get the input bytes.
+get_bytes(#tokenizer{bytes = Bytes}) ->
+    Bytes.
 
 -spec get_state(tokenizer(), atom()) -> term().
 %% @doc Get a value from the parse_state map.
