@@ -133,16 +133,96 @@ link_content_type_mismatch_test() ->
 subtokenize_no_links_test() ->
     %% Events with no links should return done=true
     Events = [
-        #event{kind = enter, name = paragraph},
-        #event{kind = enter, name = data},
-        #event{kind = exit, name = data},
-        #event{kind = exit, name = paragraph}
+        #event{kind = enter, name = paragraph,
+               point = #point{line = 1, column = 1, offset = 0}},
+        #event{kind = enter, name = data,
+               point = #point{line = 1, column = 1, offset = 0}},
+        #event{kind = exit, name = data,
+               point = #point{line = 1, column = 5, offset = 4}},
+        #event{kind = exit, name = paragraph,
+               point = #point{line = 1, column = 5, offset = 4}}
     ],
 
     ParseState = #{bytes => <<"test">>},
 
-    {ok, Result} = erlmd_subtokenize:subtokenize(Events, ParseState, undefined),
+    {ok, Result, Events2} = erlmd_subtokenize:subtokenize(Events, ParseState, undefined),
 
     ?assertEqual(true, Result#subresult.done),
     ?assertEqual([], Result#subresult.definitions),
-    ?assertEqual([], Result#subresult.gfm_footnote_definitions).
+    ?assertEqual([], Result#subresult.gfm_footnote_definitions),
+    ?assertEqual(Events, Events2).  % No changes when no links
+
+subtokenize_with_link_test() ->
+    %% Events with a link should return done=false (needs another pass)
+    Events = [
+        #event{kind = enter, name = paragraph,
+               point = #point{line = 1, column = 1, offset = 0},
+               link = #link{content = text, next = 2}},
+        #event{kind = exit, name = paragraph,
+               point = #point{line = 1, column = 1, offset = 0}},
+        #event{kind = enter, name = data,
+               point = #point{line = 1, column = 1, offset = 0},
+               link = #link{content = text, previous = 0}},
+        #event{kind = exit, name = data,
+               point = #point{line = 1, column = 5, offset = 4}}
+    ],
+
+    ParseState = #{bytes => <<"test">>},
+
+    {ok, Result, _Events2} = erlmd_subtokenize:subtokenize(Events, ParseState, undefined),
+
+    %% When links are found, done should be false (need another subtokenize pass)
+    ?assertEqual(false, Result#subresult.done).
+
+%%%=============================================================================
+%%% Slice Extraction Tests (Week 1 Days 3-4)
+%%%=============================================================================
+
+extract_slice_simple_test() ->
+    %% Test extracting a simple content slice
+    %% "Hello World" is 11 bytes (indices 0-10)
+    %% Exit offset should be 11 (after the last character)
+    Events = [
+        #event{kind = enter, name = paragraph,
+               point = #point{line = 1, column = 1, offset = 0}},
+        #event{kind = exit, name = paragraph,
+               point = #point{line = 1, column = 12, offset = 11}}
+    ],
+
+    Bytes = <<"Hello World">>,
+    Slice = erlmd_subtokenize:extract_slice(Events, Bytes, 0),
+
+    ?assertEqual(<<"Hello World">>, Slice).
+
+extract_slice_void_test() ->
+    %% Test extracting from a void event (no content)
+    Events = [
+        #event{kind = enter, name = paragraph,
+               point = #point{line = 1, column = 1, offset = 5}},
+        #event{kind = exit, name = paragraph,
+               point = #point{line = 1, column = 1, offset = 5}}
+    ],
+
+    Bytes = <<"test test">>,
+    Slice = erlmd_subtokenize:extract_slice(Events, Bytes, 0),
+
+    ?assertEqual(<<>>, Slice).
+
+extract_slice_nested_test() ->
+    %% Test extracting with nested events of same name
+    Events = [
+        #event{kind = enter, name = data,
+               point = #point{line = 1, column = 1, offset = 0}},
+        #event{kind = enter, name = data,
+               point = #point{line = 1, column = 2, offset = 1}},
+        #event{kind = exit, name = data,
+               point = #point{line = 1, column = 4, offset = 3}},
+        #event{kind = exit, name = data,
+               point = #point{line = 1, column = 5, offset = 4}}
+    ],
+
+    Bytes = <<"test">>,
+    Slice = erlmd_subtokenize:extract_slice(Events, Bytes, 0),
+
+    %% Should extract from first enter to last exit (entire content)
+    ?assertEqual(<<"test">>, Slice).
