@@ -211,4 +211,18 @@
 -define(is_definition(D), is_record(D, definition)).
 -define(is_attention_sequence(A), is_record(A, attention_sequence)).
 
+%%%=============================================================================
+%%% Subtokenization Result (Phase 9)
+%%%=============================================================================
+
+%% Result from subtokenization pass
+-record(subresult, {
+    done = true :: boolean(),              % True if no more links to process
+    definitions = [] :: [binary()],         % Link reference definitions found
+    gfm_footnote_definitions = [] :: [binary()]  % Footnote definitions found
+}).
+
+-type subresult() :: #subresult{}.
+-define(is_subresult(S), is_record(S, subresult)).
+
 -endif. % ERLMD_TYPES_HRL
