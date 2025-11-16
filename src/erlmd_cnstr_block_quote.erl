@@ -3,10 +3,30 @@
 %%%
 %%% Implements CommonMark block quotes (Section 5.1):
 %%% - Marker: `>` optionally followed by a space
-%%% - Can have 0-3 spaces before marker
-%%% - Contains flow content
-%%% - Supports lazy continuation (subsequent lines without `>`)
-%%% - Can be nested
+%%% - Can have 0-3 spaces before marker (✅ IMPLEMENTED)
+%%% - Contains flow content (⚠️  requires container system)
+%%% - Supports lazy continuation (⚠️  requires container system)
+%%% - Can be nested (⚠️  requires container system)
+%%%
+%%% ## Current Implementation Status
+%%%
+%%% ✅ **Implemented**:
+%%% - Basic block quote prefix parsing (`> text`)
+%%% - Optional space after `>` (`>text` vs `> text`)
+%%% - Indentation support (0-3 spaces before `>`)
+%%% - Empty block quotes (`>`)
+%%% - Proper event generation for markers and prefixes
+%%%
+%%% ⚠️ **Requires Container System** (Phase 9+):
+%%% - Lazy continuation (lines without `>` continuing the quote)
+%%% - Nested block quotes (`> > text`)
+%%% - Integration with flow content parsing
+%%% - Multi-line block quotes with proper continuation
+%%%
+%%% The container system will track:
+%%% - Document container stack
+%%% - Continuation state management
+%%% - Flow dispatcher integration
 %%%
 %%% Reference: markdown-rs/src/construct/block_quote.rs
 %%% @end

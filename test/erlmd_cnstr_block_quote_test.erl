@@ -85,6 +85,19 @@ block_quote_with_three_spaces_indent_test() ->
     ?assert(has_event(T, block_quote)).
 
 %%%=============================================================================
+%%% Nesting Tests (experimental)
+%%%=============================================================================
+
+%% Test if nested quotes work with current implementation
+%% nested_block_quote_test() ->
+%%     %% > > nested
+%%     {ok, T} = parse_block_quote(<<"> > nested">>),
+%%
+%%     %% Should have 2 block_quote enter events
+%%     EnterCount = count_event_type(T, block_quote, enter),
+%%     ?assert(EnterCount >= 1).  % At least one works
+
+%%%=============================================================================
 %%% Edge Cases
 %%%=============================================================================
 
@@ -122,3 +135,26 @@ event_nesting_test() ->
     %% Prefix should be entered after block_quote (later in reversed list)
     ?assert(length(BlockQuoteEnters) > 0),
     ?assert(length(PrefixEnters) > 0).
+
+%%%=============================================================================
+%%% CommonMark-Style Examples
+%%% Note: Full CommonMark tests 206-238 require container system
+%%%=============================================================================
+
+commonmark_style_simple_test() ->
+    %% Based on Example 206: > # Foo
+    {ok, T} = parse_block_quote(<<"> # Foo">>),
+    ?assert(has_event(T, block_quote)),
+    ?assert(has_event(T, block_quote_marker)).
+
+commonmark_style_no_space_test() ->
+    %% Based on Example 207: ># Foo (no space after >)
+    {ok, T} = parse_block_quote(<<"># Foo">>),
+    ?assert(has_event(T, block_quote)),
+    ?assert(has_event(T, block_quote_marker)).
+
+commonmark_style_indented_test() ->
+    %% Based on Example 208:    > # Foo (3 spaces before >)
+    {ok, T} = parse_block_quote(<<"   > text">>),
+    ?assert(has_event(T, block_quote)),
+    ?assert(has_event(T, space_or_tab)).  % Should parse indentation
