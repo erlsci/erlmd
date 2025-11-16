@@ -71,12 +71,26 @@ feed_until_done(StartState, Binary) ->
 %%
 %% State results come in the format: {{Action, State}, T} or {Action, T}
 %% where Action is 'retry', 'next', 'ok', or 'nok'
-feed_loop({ok, T}, _MaxIter) ->
-    %% Run resolvers before returning
-    T1 = erlmd_tokeniser:run_resolvers(T),
-    {ok, T1};
-feed_loop({nok, T}, _MaxIter) ->
-    {nok, T};
+feed_loop({ok, T}, MaxIter) ->
+    %% Handle pending attempts/checks
+    case erlmd_tokeniser:handle_attempt_result(T, ok) of
+        {ok, T1} ->
+            %% Run resolvers before returning
+            T2 = erlmd_tokeniser:run_resolvers(T1),
+            {ok, T2};
+        {NextResult, T1} ->
+            %% Attempt/check resolved to a different state
+            feed_loop({NextResult, T1}, MaxIter - 1)
+    end;
+feed_loop({nok, T}, MaxIter) ->
+    %% Handle pending attempts/checks
+    case erlmd_tokeniser:handle_attempt_result(T, nok) of
+        {nok, T1} ->
+            {nok, T1};
+        {NextResult, T1} ->
+            %% Attempt/check resolved to a different state
+            feed_loop({NextResult, T1}, MaxIter - 1)
+    end;
 feed_loop(_Result, 0) ->
     error(max_iterations_exceeded);
 feed_loop({{retry, StateName}, T}, MaxIter) ->

@@ -170,6 +170,14 @@ call(StateName, Tokenizer) ->
         block_quote_cont_after -> erlmd_cnstr_block_quote:cont_after(Tokenizer);
         block_quote_cont_before -> erlmd_cnstr_block_quote:cont_before(Tokenizer);
 
+        %% List item (implemented in Phase 8.2)
+        list_item -> erlmd_cnstr_list_item:start(Tokenizer);
+        list_item_before -> erlmd_cnstr_list_item:before(Tokenizer);
+        list_item_before_unordered -> erlmd_cnstr_list_item:before_unordered(Tokenizer);
+        list_item_value -> erlmd_cnstr_list_item:value(Tokenizer);
+        list_item_marker -> erlmd_cnstr_list_item:marker(Tokenizer);
+        list_item_after -> erlmd_cnstr_list_item:after_marker(Tokenizer);
+
         %% Indented code (implemented in Phase 5 - simplified)
         code_indented -> erlmd_cnstr_code_indented:start(Tokenizer);
         code_indented_after_prefix -> erlmd_cnstr_code_indented:after_prefix(Tokenizer);
