@@ -183,3 +183,140 @@ continuation_with_tab_test() ->
     {ok, T1} = test_helper:run_construct(list_item_cont_start, T),
 
     ?assert(has_event(T1, space_or_tab)).
+
+%%%=============================================================================
+%%% CommonMark Spec Examples (Day 4 - Integration)
+%%%=============================================================================
+
+%% Based on Example 261 - No space between marker and content
+%% Note: We actually SUPPORT this (it's valid in our implementation)
+commonmark_261_no_space_test() ->
+    %% -one (no space - we allow this)
+    {ok, T} = parse_list_item(<<"-one">>),
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_marker)).
+
+commonmark_261_ordered_no_space_test() ->
+    %% 2.two (no space - we allow this)
+    {ok, T} = parse_list_item(<<"2.two">>),
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_value)).
+
+%% Based on Example 267 - Leading zeros
+commonmark_267_leading_zero_test() ->
+    %% 0. ok
+    {ok, T} = parse_list_item(<<"0. ok">>),
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_value)),
+    ?assert(has_event(T, list_item_marker)).
+
+%% Based on Example 281 - Empty list items
+commonmark_281_empty_between_test() ->
+    %% - (just marker, empty)
+    {ok, T} = parse_list_item(<<"-">>),
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_marker)).
+
+%% All three unordered markers
+all_unordered_markers_test() ->
+    %% Test all three markers work
+    {ok, T1} = parse_list_item(<<"* asterisk">>),
+    ?assert(has_event(T1, list_item)),
+
+    {ok, T2} = parse_list_item(<<"- dash">>),
+    ?assert(has_event(T2, list_item)),
+
+    {ok, T3} = parse_list_item(<<"+ plus">>),
+    ?assert(has_event(T3, list_item)).
+
+%% Ordered markers with both terminators
+ordered_both_terminators_test() ->
+    %% 1. and 1) both work
+    {ok, T1} = parse_list_item(<<"1. period">>),
+    ?assert(has_event(T1, list_item)),
+
+    {ok, T2} = parse_list_item(<<"1) paren">>),
+    ?assert(has_event(T2, list_item)).
+
+%% Large ordered list number
+large_ordered_number_test() ->
+    %% 999999999. (max 9 digits)
+    {ok, T} = parse_list_item(<<"999999999. item">>),
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_value)).
+
+%%%=============================================================================
+%%% Thematic Break Interaction Tests (Day 4)
+%%%=============================================================================
+
+%% Single * is not a thematic break (needs 3+)
+not_thematic_break_single_asterisk_test() ->
+    %% * item (single asterisk - list item, not thematic break)
+    {ok, T} = parse_list_item(<<"* item">>),
+    ?assert(has_event(T, list_item)),
+    %% Should NOT have thematic_break event
+    Events = erlmd_tokeniser:get_events(T),
+    ThematicBreaks = [E || E <- Events, E#event.name =:= thematic_break],
+    ?assertEqual(0, length(ThematicBreaks)).
+
+%% Single - is not a thematic break (needs 3+)
+not_thematic_break_single_dash_test() ->
+    %% - item (single dash - list item, not thematic break)
+    {ok, T} = parse_list_item(<<"- item">>),
+    ?assert(has_event(T, list_item)),
+    %% Should NOT have thematic_break event
+    Events = erlmd_tokeniser:get_events(T),
+    ThematicBreaks = [E || E <- Events, E#event.name =:= thematic_break],
+    ?assertEqual(0, length(ThematicBreaks)).
+
+%% Two asterisks is not a thematic break (needs 3+)
+not_thematic_break_two_asterisks_test() ->
+    %% * * (two asterisks with space - still list item)
+    {ok, T} = parse_list_item(<<"* *">>),
+    ?assert(has_event(T, list_item)),
+    Events = erlmd_tokeniser:get_events(T),
+    ThematicBreaks = [E || E <- Events, E#event.name =:= thematic_break],
+    ?assertEqual(0, length(ThematicBreaks)).
+
+%%%=============================================================================
+%%% Boundary Condition Tests (Day 4)
+%%%=============================================================================
+
+%% Exactly max indentation before marker (3 spaces)
+max_indent_before_marker_test() ->
+    %%    * item (3 spaces)
+    {ok, T} = parse_list_item(<<"   * item">>),
+    ?assert(has_event(T, list_item)).
+
+%% Exactly 4 spaces after marker (max for prefix)
+exactly_four_spaces_after_test() ->
+    %% *    item (4 spaces after *)
+    {ok, T} = parse_list_item(<<"*    item">>),
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, space_or_tab)).
+
+%% Exactly max digit count (9 digits)
+max_digit_count_test() ->
+    %% 123456789. item
+    {ok, T} = parse_list_item(<<"123456789. item">>),
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_value)).
+
+%% Mixed marker types in sequence (not in same list, just testing each works)
+mixed_markers_test() ->
+    {ok, T1} = parse_list_item(<<"* first">>),
+    ?assert(has_event(T1, list_item)),
+
+    {ok, T2} = parse_list_item(<<"1. second">>),
+    ?assert(has_event(T2, list_item)),
+
+    {ok, T3} = parse_list_item(<<"- third">>),
+    ?assert(has_event(T3, list_item)).
+
+%% Single digit with paren
+single_digit_paren_test() ->
+    %% 5) item
+    {ok, T} = parse_list_item(<<"5) item">>),
+    ?assert(has_event(T, list_item)),
+    ?assert(has_event(T, list_item_value)),
+    ?assert(has_event(T, list_item_marker)).
