@@ -160,3 +160,26 @@ six_spaces_after_marker_test() ->
 
     ?assert(has_event(T, list_item)),
     ?assert(has_event(T, space_or_tab)).
+
+%%%=============================================================================
+%%% Continuation Tests (Day 3 - Basic)
+%%%=============================================================================
+
+continuation_with_indent_test() ->
+    %% Test cont_start with indented line (should succeed)
+    T = test_helper:make_tokenizer(<<"  continued">>),
+    {ok, T1} = test_helper:run_construct(list_item_cont_start, T),
+
+    ?assert(has_event(T1, space_or_tab)).
+
+continuation_no_indent_test() ->
+    %% Test cont_start with no indent (should fail)
+    T = test_helper:make_tokenizer(<<"continued">>),
+    {nok, _T1} = test_helper:run_construct(list_item_cont_start, T).
+
+continuation_with_tab_test() ->
+    %% Test cont_start with tab indent (should succeed)
+    T = test_helper:make_tokenizer(<<"\tcontinued">>),
+    {ok, T1} = test_helper:run_construct(list_item_cont_start, T),
+
+    ?assert(has_event(T1, space_or_tab)).

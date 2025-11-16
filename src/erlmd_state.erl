@@ -172,6 +172,7 @@ call(StateName, Tokenizer) ->
 
         %% List item (implemented in Phase 8.2)
         list_item -> erlmd_cnstr_list_item:start(Tokenizer);
+        list_item_cont_start -> erlmd_cnstr_list_item:cont_start(Tokenizer);
         list_item_before -> erlmd_cnstr_list_item:before(Tokenizer);
         list_item_before_unordered -> erlmd_cnstr_list_item:before_unordered(Tokenizer);
         list_item_value -> erlmd_cnstr_list_item:value(Tokenizer);

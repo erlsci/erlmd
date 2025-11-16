@@ -1,14 +1,33 @@
 %%%-----------------------------------------------------------------------------
 %%% @doc List item construct.
 %%%
-%%% Implements CommonMark list items (Section 5.2):
+%%% Implements CommonMark list items (Section 5.2).
+%%%
+%%% ## Current Implementation Status (Phase 8.2, Days 1-3)
+%%%
+%%% ✅ **Day 1 - Marker Detection**:
 %%% - Unordered markers: `*`, `-`, `+`
 %%% - Ordered markers: `1.` through `999999999.` or `1)` through `999999999)`
+%%% - Thematic break disambiguation for `*` and `-`
 %%% - Indentation: Marker can be preceded by 0-3 spaces
-%%% - Content indent: Content after marker determines list item indent
-%%% - Blank initial: List item can start with blank line
-%%% - Lazy continuation: Subsequent lines can be lazy
-%%% - Loose vs tight: Blank lines between items determine list style
+%%% - Max 9 digits for ordered lists
+%%%
+%%% ✅ **Day 2 - Prefix and Whitespace**:
+%%% - 0 spaces after marker: Content starts immediately (e.g., `*item`)
+%%% - 1-4 spaces: Consumed as list item prefix
+%%% - 5+ spaces: Only 4 consumed (rest for indented code block)
+%%% - Tab support
+%%%
+%%% ✅ **Day 3 - Basic Continuation**:
+%%% - `cont_start/1` checks for indentation on continuation lines
+%%% - Simplified: Accepts any indentation (min 1 space) to continue
+%%%
+%%% ⚠️ **Requires Container System** (Phase 9+):
+%%% - Proper content indent tracking (exact indent requirements)
+%%% - Lazy continuation (lines without full indent)
+%%% - Multi-line list item parsing through document flow
+%%% - Integration with flow dispatcher
+%%% - Loose vs tight list detection (blank lines between items)
 %%%
 %%% Reference: markdown-rs/src/construct/list_item.rs
 %%% @end
@@ -54,9 +73,30 @@ start(T) ->
 -spec cont_start(erlmd_tokeniser:tokenizer()) ->
     {erlmd_tokeniser:state_result(), erlmd_tokeniser:tokenizer()}.
 %% @doc Start of list item continuation.
-%% To be implemented in Day 3.
-cont_start(_T) ->
-    error(not_implemented).
+%% Checks if the current line continues the list item.
+%%
+%% ```markdown
+%%   | * a
+%% > |   b
+%%     ^
+%% ```
+%%
+%% NOTE: Full continuation support requires the container system (Phase 9+).
+%% This is a simplified implementation that checks for basic indentation.
+cont_start(T) ->
+    %% For continuation, we need indentation matching the content indent
+    %% For now, accept any indentation (min 1 space) as a simplified implementation
+    %% TODO (Phase 9): Implement proper content indent tracking via container system
+    case erlmd_tokeniser:current(T) of
+        C when C =:= $\t; C =:= $\s ->
+            %% Has indentation - consume at least 1 space/tab
+            %% Use infinity as max to consume all available indentation
+            T1 = erlmd_tokeniser:attempt(T, ok, nok),
+            erlmd_cnstr_prtl_space_or_tab:space_or_tab_min_max(T1, 1, infinity);
+        _ ->
+            %% No indentation - cannot continue (lazy continuation not yet supported)
+            {nok, T}
+    end.
 
 %%%=============================================================================
 %%% Internal Functions - Marker Detection
